@@ -30,7 +30,6 @@ def filter_layers(layers_module, tfe_layers_module):
         match_result = pattern.match(attr_name)
         if match_result is None:
             continue
-        else:
-            layer_type = match_result.group(0)
-            if hasattr(tfe.keras.layers, layer_type):
-                yield getattr(layers_module, layer_type)
+        layer_type = match_result[0]
+        if hasattr(tfe.keras.layers, layer_type):
+            yield getattr(layers_module, layer_type)

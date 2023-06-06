@@ -36,9 +36,7 @@ class TFEWorker:
         config = cluster.tfe_config
         config.save(config_filename)
 
-        launch_cmd = "python -m tf_encrypted.player --config {} {}".format(
-            config_filename, player_name
-        )
+        launch_cmd = f"python -m tf_encrypted.player --config {config_filename} {player_name}"
         if self._auto_managed:
             self._server_process = subprocess.Popen(launch_cmd.split(" "))
         else:
@@ -154,7 +152,7 @@ class TFECluster:
 
     def _build_cluster(self, workers):
         if len(workers) != 3:
-            raise ValueError("Expected three workers but {} were given".format(len(workers)))
+            raise ValueError(f"Expected three workers but {len(workers)} were given")
 
         player_to_worker_mapping = OrderedDict()
         player_to_worker_mapping["server0"] = workers[0]

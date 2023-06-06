@@ -42,8 +42,7 @@ def test___bool__(workers):
     x_sh = torch.tensor([[3, 4]]).share(alice, bob, crypto_provider=james)
 
     with pytest.raises(ValueError):
-        if x_sh:  # pragma: no cover
-            pass
+        pass
 
 
 def test_share_inplace_consistency(workers):
@@ -464,8 +463,8 @@ def test_chunk(workers):
     expected0 = [torch.tensor([[1, 2, 3, 4]]), torch.tensor([[5, 6, 7, 8]])]
     expected1 = [torch.tensor([[1, 2], [5, 6]]), torch.tensor([[3, 4], [7, 8]])]
 
-    assert all([(res0[i].get() == expected0[i]).all() for i in range(2)])
-    assert all([(res1[i].get() == expected1[i]).all() for i in range(2)])
+    assert all((res0[i].get() == expected0[i]).all() for i in range(2))
+    assert all((res1[i].get() == expected1[i]).all() for i in range(2))
 
 
 def test_roll(workers):

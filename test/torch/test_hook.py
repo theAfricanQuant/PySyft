@@ -144,7 +144,7 @@ def test_functional_same_in_both_imports(attr):
 def test_hook_tensor(workers):
     x = torch.tensor([1.0, -1.0, 3.0, 4.0], requires_grad=True)
     x.send(workers["bob"])
-    x = torch.tensor([1.0, -1.0, 3.0, 4.0], requires_grad=True)[0:2]
+    x = torch.tensor([1.0, -1.0, 3.0, 4.0], requires_grad=True)[:2]
     x_ptr = x.send(workers["bob"])
     assert hasattr(x_ptr, "child")
 
@@ -169,8 +169,6 @@ def test_signature_cache_change():
     z = x.div(y)
     z = x.div(2)
     z = x.div(y)
-
-    assert True
 
 
 def test_parameter_hooking():

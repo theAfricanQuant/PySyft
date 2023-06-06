@@ -32,7 +32,7 @@ def _start_proc(participant, dataset: str = None, **kwargs):  # pragma: no cover
     return p
 
 
-def instantiate_websocket_client_worker(max_tries=5, sleep_time=0.1, **kwargs):  # pragma: no cover
+def instantiate_websocket_client_worker(max_tries=5, sleep_time=0.1, **kwargs):    # pragma: no cover
     """Helper function to instantiate the websocket client.
 
     If a connection is refused, we wait a bit (`sleep_time` seconds) and try again.
@@ -45,11 +45,10 @@ def instantiate_websocket_client_worker(max_tries=5, sleep_time=0.1, **kwargs): 
             remote_proxy = WebsocketClientWorker(**kwargs)
             connection_open = True
         except ConnectionRefusedError as e:
-            if retry_counter < max_tries:
-                retry_counter += 1
-                time.sleep(sleep_time)
-            else:
+            if retry_counter >= max_tries:
                 raise e
+            retry_counter += 1
+            time.sleep(sleep_time)
     return remote_proxy
 
 
@@ -98,10 +97,10 @@ def isolated_filesystem():
     """
     cwd = os.getcwd()
     t = tempfile.mkdtemp()
-    shutil.copytree("examples/tutorials/", t + "/examples")
+    shutil.copytree("examples/tutorials/", f"{t}/examples")
     # Path(t + "/data/").mkdir(parents=True, exist_ok=True)
-    shutil.copytree("examples/data/", t + "/data/")
-    os.chdir(t + "/examples")
+    shutil.copytree("examples/data/", f"{t}/data/")
+    os.chdir(f"{t}/examples")
     try:
         yield t
     finally:
@@ -111,8 +110,7 @@ def isolated_filesystem():
 
 @pytest.fixture(scope="session", autouse=True)
 def hook():
-    hook = TorchHook(torch)
-    return hook
+    return TorchHook(torch)
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -135,16 +133,13 @@ def workers(hook):
     charlie = syft.VirtualWorker(id="charlie", hook=hook, is_client_worker=False)
     james = syft.VirtualWorker(id="james", hook=hook, is_client_worker=False)
 
-    workers = {
+    yield {
         "me": hook.local_worker,
         "alice": alice,
         "bob": bob,
         "charlie": charlie,
         "james": james,
     }
-
-    yield workers
-
     alice.remove_worker_from_local_worker_registry()
     bob.remove_worker_from_local_worker_registry()
     charlie.remove_worker_from_local_worker_registry()

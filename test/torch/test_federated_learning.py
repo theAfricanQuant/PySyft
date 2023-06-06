@@ -36,8 +36,8 @@ class TestFederatedLearning(object):
 
         # get pointers to training data on each worker by
         # sending some training data to bob and alice
-        data_bob = data[0:2]
-        target_bob = target[0:2]
+        data_bob = data[:2]
+        target_bob = target[:2]
 
         data_alice = data[2:]
         target_alice = target[2:]
@@ -61,8 +61,7 @@ class TestFederatedLearning(object):
 
         # Training Logic
         opt = optim.SGD(params=model.parameters(), lr=0.1)
-        for iter in range(20):
-
+        for _ in range(20):
             # NEW) iterate through each worker's dataset
             for data, target in self.datasets:
                 # NEW) send model to correct worker

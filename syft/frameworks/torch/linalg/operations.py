@@ -132,12 +132,12 @@ def qr(t, mode="reduced", norm_factor=None):
     I = torch.diag(torch.Tensor([1.0] * n_rows))
 
     # Send it to remote worker if t is pointer, secret share it if it's an AST
-    if t_type == "pointer":
-        I = I.send(location)
     if t_type == "ast":
         I = I.fix_prec(precision_fractional=prec_frac).share(*workers, crypto_provider=crypto_prov)
 
-    if not mode == "r":
+    elif t_type == "pointer":
+        I = I.send(location)
+    if mode != "r":
         # Initiate Q_transpose
         Q_t = I.copy()
 
@@ -187,7 +187,7 @@ def qr(t, mode="reduced", norm_factor=None):
 
         # Update R
         R = H @ R
-        if not mode == "r":
+        if mode != "r":
             # Update Q_transpose
             Q_t = H @ Q_t
 

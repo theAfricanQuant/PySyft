@@ -31,10 +31,9 @@ get_child = lambda i: i.child
 # dict to specify the action depending of the type found
 type_rule = {
     list: lambda _args: [build_rule(a) for a in _args],
-    tuple: lambda _args: tuple([build_rule(a) for a in _args]),
-    dict: one,  # FIXME This is for additiveShareTensor.child, it can be confusing and AST.child
+    tuple: lambda _args: tuple(build_rule(a) for a in _args),
+    dict: one,
     np.ndarray: one,
-    # should perhaps be of type ShareDict extending dict or something like this
 }
 
 # Dict to return the proper lambda function for the right framework or syft tensor type
@@ -112,7 +111,7 @@ def unwrap_args_from_method(attr, method_self, args, kwargs):
     """
     # Specify an id to distinguish methods from different classes
     # As they won't be used with the same arg types
-    attr_id = type(method_self).__name__ + "." + attr
+    attr_id = f"{type(method_self).__name__}.{attr}"
     try:
         assert attr not in ambiguous_methods
 
@@ -216,7 +215,7 @@ def hook_response(attr, response, wrap_type, wrap_args={}, new_self=None):
     """
 
     # inline methods should just return new_self
-    if "__i" == attr[0:3]:
+    if attr[:3] == "__i":
         return new_self
 
     # TODO: Why do we need to cast it in a tuple? this is a (small) time waste
@@ -264,10 +263,7 @@ def build_wrap_reponse_from_function(response, wrap_type, wrap_args):
     # structure is the same as the response object, with 1 where there was
     # (framework or syft) tensors and 0 when not (ex: number, str, ...)
     rule = build_rule(response)
-    # Build a function with this rule to efficiently replace syft tensors
-    # (but not pointer) with their child in the args objects
-    response_hook_function = build_wrap_response_with_rules(response, rule, wrap_type, wrap_args)
-    return response_hook_function
+    return build_wrap_response_with_rules(response, rule, wrap_type, wrap_args)
 
 
 def build_rule(args):
@@ -415,16 +411,15 @@ def build_get_tensor_type(rules, layer=None):
             layer.append(i)
             lambdas += build_get_tensor_type(r, layer)
 
-    if first_layer:
-        try:
-            return lambdas[0]
-        except IndexError:
-            # Some functions don't have tensors in their signature so rules is only made of 0s,
-            # Hence lambdas is empty. Raising PureFrameworkTensorFoundError triggers an execution of
-            # the un-hooked (so native) function which is perfect in that case.
-            raise exceptions.PureFrameworkTensorFoundError
-    else:
+    if not first_layer:
         return lambdas
+    try:
+        return lambdas[0]
+    except IndexError:
+        # Some functions don't have tensors in their signature so rules is only made of 0s,
+        # Hence lambdas is empty. Raising PureFrameworkTensorFoundError triggers an execution of
+        # the un-hooked (so native) function which is perfect in that case.
+        raise exceptions.PureFrameworkTensorFoundError
 
 
 # Function helpers to convert [a, b, c, ...] -> obj[a][b][c][...]
@@ -586,7 +581,7 @@ def eight_fold(lambdas, args, **kwargs):
 
 
 def many_fold(lambdas, args, **kwargs):
-    return tuple([lambdas[i](args[i], **kwargs) for i in range(len(lambdas))])
+    return tuple(lambdas[i](args[i], **kwargs) for i in range(len(lambdas)))
 
 
 # Add the possibility to make a type check in the identity function applied
@@ -654,7 +649,7 @@ def register_response(
     if not response_is_tuple:
         response = (response, 1)
 
-    attr_id = "{}".format(attr)
+    attr_id = f"{attr}"
 
     try:
         assert attr not in ambiguous_functions
@@ -691,10 +686,7 @@ def build_register_response_function(response: object) -> Callable:
     # structure is the same as the response object, with 1 where there was
     # (framework or syft) tensors and 0 when not (ex: number, str, ...)
     rule = build_rule(response)
-    # Build a function with this rule to efficiently replace syft tensors
-    # (but not pointer) with their child in the args objects
-    response_hook_function = build_register_response(response, rule)
-    return response_hook_function
+    return build_register_response(response, rule)
 
 
 def register_tensor(

@@ -45,15 +45,12 @@ exclusion_list_folders = [
     "examples/tutorials/advanced/Federated SMS Spam prediction",
 ]
 
-# remove known buggy notebooks and folders that should be excluded
-not_excluded_notebooks = []
-for n in all_notebooks:
-    if n.name in exclusion_list_notebooks:
-        continue
-    elif str(n.parent) in exclusion_list_folders:
-        continue
-    else:
-        not_excluded_notebooks.append(n)
+not_excluded_notebooks = [
+    n
+    for n in all_notebooks
+    if n.name not in exclusion_list_notebooks
+    and str(n.parent) not in exclusion_list_folders
+]
 
 
 def test_notebooks_basic(isolated_filesystem):

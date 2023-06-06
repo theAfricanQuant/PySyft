@@ -121,10 +121,7 @@ class AbstractTensor(AbstractObject):
     @property
     def grad(self):
         child_grad = self.child.grad
-        if child_grad is None:
-            return None
-        else:
-            return child_grad.wrap()
+        return None if child_grad is None else child_grad.wrap()
 
 
 def initialize_tensor(hook, obj, owner=None, id=None, init_args=tuple(), init_kwargs={}):

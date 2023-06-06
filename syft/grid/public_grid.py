@@ -136,47 +136,44 @@ class PublicGridNetwork(AbstractGrid):
                 an encrypted model, or if model isn't a plan.
         """
         # Model needs to be a plan
-        if isinstance(model, Plan):
-            hosts = self._ask_gateway(requests.get, GATEWAY_ENDPOINTS.SELECT_ENCRYPTED_MODEL_HOSTS)
-            if (
+        if not isinstance(model, Plan):
+            raise RuntimeError("Model needs to be a plan to be encrypted!")
+        hosts = self._ask_gateway(requests.get, GATEWAY_ENDPOINTS.SELECT_ENCRYPTED_MODEL_HOSTS)
+        if (
                 len(hosts) and len(hosts) % self.SMPC_HOST_CHUNK == 0
             ):  # Minimum workers chunk to share and host a model (3 to SMPC operations, 1 to host)
-                for i in range(0, len(hosts), self.SMPC_HOST_CHUNK):
+            for i in range(0, len(hosts), self.SMPC_HOST_CHUNK):
 
-                    # Connect with SMPC Workers
-                    smpc_end_interval = i + 2
-                    smpc_workers_info = hosts[i:smpc_end_interval]
-                    smpc_workers = []
-                    for worker in smpc_workers_info:
-                        smpc_workers.append(self.__connect_with_node(*worker))
+                # Connect with SMPC Workers
+                smpc_end_interval = i + 2
+                smpc_workers_info = hosts[i:smpc_end_interval]
+                smpc_workers = [
+                    self.__connect_with_node(*worker)
+                    for worker in smpc_workers_info
+                ]
+                # Connect with crypto provider
+                crypto_provider = self.__connect_with_node(*hosts[smpc_end_interval])
 
-                    # Connect with crypto provider
-                    crypto_provider = self.__connect_with_node(*hosts[smpc_end_interval])
+                # Connect with host worker
+                host = self.__connect_with_node(*hosts[smpc_end_interval + 1])
 
-                    # Connect with host worker
-                    host = self.__connect_with_node(*hosts[smpc_end_interval + 1])
+                # Connect nodes to each other
+                model_nodes = smpc_workers + [crypto_provider, host]
+                self._connect_all_nodes(model_nodes, NodeClient)
 
-                    # Connect nodes to each other
-                    model_nodes = smpc_workers + [crypto_provider, host]
-                    self._connect_all_nodes(model_nodes, NodeClient)
+                # SMPC Share
+                model.fix_precision().share(*smpc_workers, crypto_provider=crypto_provider)
 
-                    # SMPC Share
-                    model.fix_precision().share(*smpc_workers, crypto_provider=crypto_provider)
+                # Host model
+                p_model = model.send(host)
 
-                    # Host model
-                    p_model = model.send(host)
+                # Save model pointer
+                host.serve_model(p_model, model_id=model.id, mpc=True)
 
-                    # Save model pointer
-                    host.serve_model(p_model, model_id=model.id, mpc=True)
-
-                    for node in model_nodes:
-                        node.close()
-            # If host's length % SMPC_HOST_CHUNK != 0 or length == 0
-            else:
-                raise RuntimeError("Not enough workers to host an encrypted model!")
-        # If model isn't a plan
+                for node in model_nodes:
+                    node.close()
         else:
-            raise RuntimeError("Model needs to be a plan to be encrypted!")
+            raise RuntimeError("Not enough workers to host an encrypted model!")
 
     def _query_unencrypted_models(self, id) -> "NodeClient":
         """ Search for a specific model registered on grid network, if found,
@@ -220,11 +217,10 @@ class PublicGridNetwork(AbstractGrid):
             # Connect with host node
             host_node = self.__connect_with_node(node_id, node_address)
 
-            # Connect with SMPC Workers
-            workers = []
-            for worker_id, worker_address in worker_infos:
-                workers.append(self.__connect_with_node(worker_id, worker_address))
-
+            workers = [
+                self.__connect_with_node(worker_id, worker_address)
+                for worker_id, worker_address in worker_infos
+            ]
             # Connect with SMPC crypto provider
             crypto_provider_id = crypto_provider[0]
             crypto_provider_url = crypto_provider[1]
@@ -249,8 +245,7 @@ class PublicGridNetwork(AbstractGrid):
             Raises:
                 RuntimeError: If model if not found.
         """
-        worker = self.query_model_hosts(id)
-        if worker:
+        if worker := self.query_model_hosts(id):
             response = worker.run_remote_inference(model_id=id, data=data)
             worker.close()
             return torch.tensor(response)

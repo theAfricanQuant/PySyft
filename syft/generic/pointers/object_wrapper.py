@@ -36,8 +36,8 @@ class ObjectWrapper:
     def __str__(self):
         out = "<"
         out += str(type(self)).split("'")[1].split(".")[-1]
-        out += " id:" + str(self.id)
-        out += " obj:" + str(self._obj)
+        out += f" id:{str(self.id)}"
+        out += f" obj:{str(self._obj)}"
         out += ">"
         return out
 
@@ -85,16 +85,19 @@ class ObjectWrapper:
         Returns:
             A pointers.CallablePointer pointer to self.
         """
-        pointer = create_callable_pointer(
+        return create_callable_pointer(
             owner=owner,
             location=location,
             id=ptr_id,
-            id_at_location=id_at_location if id_at_location is not None else object.id,
+            id_at_location=id_at_location
+            if id_at_location is not None
+            else object.id,
             tags=object.tags,
             description=object.description,
-            garbage_collect_data=False if garbage_collect_data is None else garbage_collect_data,
+            garbage_collect_data=False
+            if garbage_collect_data is None
+            else garbage_collect_data,
         )
-        return pointer
 
     @staticmethod
     def simplify(worker: AbstractWorker, obj: "ObjectWrapper") -> tuple:
@@ -102,8 +105,7 @@ class ObjectWrapper:
 
     @staticmethod
     def detail(worker: AbstractWorker, obj_wrapper_tuple: str) -> "ObjectWrapper":
-        obj_wrapper = ObjectWrapper(
+        return ObjectWrapper(
             id=obj_wrapper_tuple[0],
             obj=sy.serde.msgpack.serde._detail(worker, obj_wrapper_tuple[1]),
         )
-        return obj_wrapper

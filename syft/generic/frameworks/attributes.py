@@ -58,9 +58,7 @@ class FrameworkAttributes(ABC):
         """
         if command not in self.allowed_commands:
             raise RuntimeError(f'Command "{command}" is not a supported {self.ALIAS} operation.')
-        if get_native:
-            return self.native_commands[command]
-        return command
+        return self.native_commands[command] if get_native else command
 
     def _is_command_valid_guard(self, command: str) -> bool:
         """Validate the command.
@@ -94,6 +92,5 @@ class FrameworkAttributes(ABC):
             The name of the native command (ex: torch.native_add)
         """
         parts = attr.split(".")
-        parts[-1] = "native_" + parts[-1]
-        native_func_name = ".".join(parts)
-        return native_func_name
+        parts[-1] = f"native_{parts[-1]}"
+        return ".".join(parts)

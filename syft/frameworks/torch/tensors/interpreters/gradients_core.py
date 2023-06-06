@@ -35,7 +35,7 @@ class GradFunc:
             filter(lambda x: x is not None, [forward_grad(arg) for arg in args])
         )
         self.result = None
-        self._attributes = list()
+        self._attributes = []
 
     def gradient(self, grad):
         raise NotImplementedError
@@ -51,7 +51,7 @@ class GradFunc:
 
         # add attributes of grad function to _attributes list
         # essential for serialization and deserialization
-        if not name in {"next_functions", "result", "_attributes"}:
+        if name not in {"next_functions", "result", "_attributes"}:
             self._attributes.append(value)
 
     @staticmethod
@@ -95,11 +95,7 @@ class GradFunc:
         grad_fn_attrs = []
         cls, *grad_fn_attrs = syft.serde.msgpack.serde._detail(worker, gradfn_tuple)
 
-        if cls == "GradFunc":
-            cls = GradFunc
-        else:
-            cls = getattr(gradients, cls)
-
+        cls = GradFunc if cls == "GradFunc" else getattr(gradients, cls)
         return cls(*grad_fn_attrs)
 
 

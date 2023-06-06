@@ -3,7 +3,7 @@ from syft import dependency_check
 
 logger = logging.getLogger(__name__)
 
-__all__ = list()
+__all__ = []
 
 if dependency_check.tensorflow_available:
     from syft.frameworks import tensorflow

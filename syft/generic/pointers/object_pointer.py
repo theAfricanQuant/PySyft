@@ -149,17 +149,17 @@ class ObjectPointer(AbstractObject):
         owner = obj.owner.get_worker(owner)
         location = obj.owner.get_worker(location)
 
-        ptr = ObjectPointer(
+        return ObjectPointer(
             location=location,
             id_at_location=id_at_location,
             owner=owner,
             id=ptr_id,
-            garbage_collect_data=True if garbage_collect_data is None else garbage_collect_data,
+            garbage_collect_data=True
+            if garbage_collect_data is None
+            else garbage_collect_data,
             tags=obj.tags,
             description=obj.description,
         )
-
-        return ptr
 
     def wrap(self, register=True, type=None, **kwargs):
         """Wraps the class inside framework tensor.
@@ -207,10 +207,7 @@ class ObjectPointer(AbstractObject):
         owner = pointer.owner
         location = pointer.location
 
-        # Send the command
-        response = owner.send_command(location, command)
-
-        return response
+        return owner.send_command(location, command)
 
     @classmethod
     def find_a_pointer(cls, command):
@@ -307,7 +304,7 @@ class ObjectPointer(AbstractObject):
             big_str = True
             out += "\n\tTags: "
             for tag in self.tags:
-                out += str(tag) + " "
+                out += f"{str(tag)} "
 
         if big_str and hasattr(self, "shape"):
             out += "\n\tShape: " + str(self.shape)
@@ -345,7 +342,7 @@ class ObjectPointer(AbstractObject):
 
     def _create_attr_name_string(self, attr_name):
         if self.point_to_attr is not None:
-            point_to_attr = "{}.{}".format(self.point_to_attr, attr_name)
+            point_to_attr = f"{self.point_to_attr}.{attr_name}"
         else:
             point_to_attr = attr_name
         return point_to_attr
@@ -431,12 +428,11 @@ class ObjectPointer(AbstractObject):
                         obj = obj.wrap()
 
             return obj
-        # Else we keep the same Pointer
         else:
 
             location = syft.hook.local_worker.get_worker(worker_id)
 
-            ptr = ObjectPointer(
+            return ObjectPointer(
                 location=location,
                 id_at_location=id_at_location,
                 owner=worker,
@@ -444,10 +440,10 @@ class ObjectPointer(AbstractObject):
                 garbage_collect_data=garbage_collect_data,
             )
 
-            return ptr
-
 
 ### Register the object with hook_args.py ###
 register_type_rule({ObjectPointer: one})
-register_forward_func({ObjectPointer: lambda p: (_ for _ in ()).throw(RemoteObjectFoundError(p))})
+register_forward_func(
+    {ObjectPointer: lambda p: iter(()).throw(RemoteObjectFoundError(p))}
+)
 register_backward_func({ObjectPointer: lambda i: i})

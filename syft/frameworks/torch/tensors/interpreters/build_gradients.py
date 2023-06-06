@@ -14,8 +14,6 @@ def split_signature(signature):
 # There is probably a better way to do this
 # Need to handle keyword arguments as well
 def construct_grad_fn_class(grad_def):
-    lines = []
-
     name, arguments = split_signature(grad_def["name"])
 
     # This won't work right if keyword arguments are present. I should refactor
@@ -23,14 +21,13 @@ def construct_grad_fn_class(grad_def):
     input_args = arguments.split(", ")
     signature = arguments.replace("self", "self_")
 
-    lines.append(f"class {name.capitalize()}Backward(GradFunc):")
-    lines.append(tab + f"def __init__(self, {signature}):")
-    lines.append(2 * tab + f"super().__init__(self, {signature})")
-    for arg in signature.split(", "):
-        lines.append(2 * tab + f"self.{arg} = {arg}")
-    lines.append("")
-
-    lines.append(tab + "def gradient(self, grad):")
+    lines = [
+        f"class {name.capitalize()}Backward(GradFunc):",
+        f"{tab}def __init__(self, {signature}):",
+        2 * tab + f"super().__init__(self, {signature})",
+    ]
+    lines.extend(2 * tab + f"self.{arg} = {arg}" for arg in signature.split(", "))
+    lines.extend(("", f"{tab}def gradient(self, grad):"))
     for arg in input_args:
         formula = grad_def[arg]
         for in_arg in input_args:

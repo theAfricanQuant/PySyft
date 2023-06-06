@@ -14,10 +14,7 @@ def clean_text(text):
 
 
 def tokenize(text, word_to_idx):
-    tokens = []
-    for word in text.split():
-        tokens.append(word_to_idx[word])
-    return tokens
+    return [word_to_idx[word] for word in text.split()]
 
 
 def pad_and_truncate(messages, max_length=30):

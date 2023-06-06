@@ -124,7 +124,7 @@ def logmgf_exact(q, priv_eps, l):
         try:
             log_t = math.log(t)
         except ValueError:
-            print("Got ValueError in math.log for values :" + str((q, priv_eps, l, t)))
+            print(f"Got ValueError in math.log for values :{(q, priv_eps, l, t)}")
             log_t = priv_eps * l
     else:
         log_t = priv_eps * l
@@ -289,12 +289,7 @@ def tensors_to_literals(tensor_list):
 
     """
 
-    literal_list = []
-
-    for tensor in tensor_list:
-        literal_list.append(tensor.item())
-
-    return literal_list
+    return [tensor.item() for tensor in tensor_list]
 
 
 def logmgf_exact_torch(q, priv_eps, l):
@@ -322,7 +317,7 @@ def logmgf_exact_torch(q, priv_eps, l):
 
         except ValueError:
 
-            print("Got ValueError in math.log for values :" + str((q, priv_eps, l, t)))
+            print(f"Got ValueError in math.log for values :{(q, priv_eps, l, t)}")
             log_t = priv_eps * l
     else:
 
@@ -357,13 +352,9 @@ def compute_q_noisy_max_torch(counts, noise_eps):
     )
     q = 0.0
 
-    index = 0
     for c in counts_rest:
-
         gap = -c
         q += (gap + 2.0) / (4.0 * math.exp(gap))
-
-        index += 1
 
     return min(q, 1.0 - (1.0 / len(counts)))
 
@@ -462,7 +453,7 @@ def perform_analysis_torch(preds, indices, noise_eps=0.1, delta=1e-5, moments=8,
     assert num_examples == _num_examples
 
     labels = list(preds.flatten())
-    labels = set([tensor.item() for tensor in labels])
+    labels = {tensor.item() for tensor in labels}
     num_labels = len(labels)
 
     counts_mat = torch.zeros(num_examples, num_labels, dtype=torch.float32)

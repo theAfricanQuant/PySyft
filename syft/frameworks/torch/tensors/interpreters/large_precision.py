@@ -150,9 +150,7 @@ class LargePrecisionTensor(AbstractTensor):
             gate = 1 * (res > self.field / 2)
             neg_nums = (res - self.field) // truncation + self.field
             pos_nums = res // truncation
-            trunc_res = np.where(gate, neg_nums, pos_nums)
-
-            return trunc_res
+            return np.where(gate, neg_nums, pos_nums)
         else:
             raise NotImplementedError
 
@@ -259,9 +257,12 @@ class LargePrecisionTensor(AbstractTensor):
         """Creates an numpy array containing the objective large numbers."""
         ndarray = self.child.numpy()
         ndarray = ndarray.reshape(-1, ndarray.shape[-1])
-        result = []
-        for elem in ndarray:
-            result.append(LargePrecisionTensor._restore_large_number(elem, self.internal_precision))
+        result = [
+            LargePrecisionTensor._restore_large_number(
+                elem, self.internal_precision
+            )
+            for elem in ndarray
+        ]
         return np.array(result).reshape(self.child.shape[:-1])
 
     @staticmethod

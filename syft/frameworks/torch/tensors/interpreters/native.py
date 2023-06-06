@@ -63,18 +63,14 @@ class TorchTensor(AbstractTensor):
     def tags(self):
         if self.has_child():
             return self.child.tags
-        else:
-            if not hasattr(self, "_tags"):
-                self._tags = None
-            return self._tags
+        if not hasattr(self, "_tags"):
+            self._tags = None
+        return self._tags
 
     @tags.setter
     def tags(self, new_tags):
         if self.has_child():
-            if new_tags is not None:
-                self.child.tags = set(new_tags)
-            else:
-                self.child.tags = set()
+            self.child.tags = set(new_tags) if new_tags is not None else set()
         else:
             self._tags = new_tags
 
@@ -82,10 +78,9 @@ class TorchTensor(AbstractTensor):
     def description(self):
         if self.has_child():
             return self.child.description
-        else:
-            if not hasattr(self, "_description"):
-                self._description = None
-            return self._description
+        if not hasattr(self, "_description"):
+            self._description = None
+        return self._description
 
     @description.setter
     def description(self, new_desc):
@@ -96,17 +91,11 @@ class TorchTensor(AbstractTensor):
 
     @property
     def shape(self):
-        if self.is_wrapper:
-            return self.child.shape
-        else:
-            return self.native_shape
+        return self.child.shape if self.is_wrapper else self.native_shape
 
     @property
     def data(self):
-        if self.is_wrapper:
-            return self.child.data
-        else:
-            return self.native_data
+        return self.child.data if self.is_wrapper else self.native_data
 
     @property
     def grad(self):
@@ -115,10 +104,7 @@ class TorchTensor(AbstractTensor):
             if child_grad is None:
                 return None
             else:
-                if child_grad.is_wrapper:
-                    return child_grad
-                else:
-                    return child_grad.wrap()
+                return child_grad if child_grad.is_wrapper else child_grad.wrap()
         else:
             to_return = self.native_grad
 
@@ -142,48 +128,46 @@ class TorchTensor(AbstractTensor):
             not isinstance(new_grad, torch.Tensor) or hasattr(new_grad, "child")
         ):
             self.child.grad = new_grad  # .wrap()
-        else:
-            if self.native_grad is not None:
-                with torch.no_grad():
-                    self.native_grad = new_grad
-            elif new_grad is not None:
+        elif self.native_grad is not None:
+            with torch.no_grad():
                 self.native_grad = new_grad
+        elif new_grad is not None:
+            self.native_grad = new_grad
         return self
 
     def __str__(self) -> str:
-        if self.has_child():
-            if self.is_wrapper:
-                return "(Wrapper)>" + self.child.__str__()
-            else:
-                return type(self).__name__ + ">" + self.child.__str__()
-        else:
+        if not self.has_child():
             return self.native___str__()
+        if self.is_wrapper:
+            return f"(Wrapper)>{self.child.__str__()}"
+        else:
+            return f"{type(self).__name__}>{self.child.__str__()}"
 
     def __repr__(self) -> str:
         if self.has_child():
-            if self.is_wrapper:
-                return "(Wrapper)>" + self.child.__str__()
-            else:
-                return type(self).__name__ + ">" + self.child.__repr__()
-        else:
-            out = self.native___repr__()
+            return (
+                f"(Wrapper)>{self.child.__str__()}"
+                if self.is_wrapper
+                else f"{type(self).__name__}>{self.child.__repr__()}"
+            )
+        out = self.native___repr__()
 
-            big_repr = False
+        big_repr = False
 
-            if self.tags is not None and len(self.tags):
-                big_repr = True
-                out += "\n\tTags: "
-                for tag in self.tags:
-                    out += str(tag) + " "
+        if self.tags is not None and len(self.tags):
+            big_repr = True
+            out += "\n\tTags: "
+            for tag in self.tags:
+                out += f"{str(tag)} "
 
-            if self.description is not None:
-                big_repr = True
-                out += "\n\tDescription: " + str(self.description).split("\n")[0] + "..."
+        if self.description is not None:
+            big_repr = True
+            out += "\n\tDescription: " + str(self.description).split("\n")[0] + "..."
 
-            if big_repr:
-                out += "\n\tShape: " + str(self.shape)
+        if big_repr:
+            out += "\n\tShape: " + str(self.shape)
 
-            return out
+        return out
 
     def __eq__(self, other):
         return self.eq(other)
@@ -192,12 +176,11 @@ class TorchTensor(AbstractTensor):
     def id(self):
         if self.is_wrapper:
             return self.child.id
-        else:
-            try:
-                return self._id
-            except AttributeError:
-                self._id = syft.ID_PROVIDER.pop()
-                return self._id
+        try:
+            return self._id
+        except AttributeError:
+            self._id = syft.ID_PROVIDER.pop()
+            return self._id
 
     @property
     def gc(self):
@@ -337,24 +320,23 @@ class TorchTensor(AbstractTensor):
 
         return response
 
-    def _get_response(cmd, args, kwargs):
+    def _get_response(self, args, kwargs):
         """
             Return the evaluation of the cmd string parameter
         """
-        if isinstance(args, tuple):
-            response = eval(cmd)(*args, **kwargs)
-        else:
-            response = eval(cmd)(args, **kwargs)
+        return (
+            eval(self)(*args, **kwargs)
+            if isinstance(args, tuple)
+            else eval(self)(args, **kwargs)
+        )
 
-        return response
-
-    def _fix_torch_library(cmd):
+    def _fix_torch_library(self):
         """
             Change the cmd string parameter to use nn.functional path to avoid erros.
         """
-        if "_C._nn" in cmd:
-            cmd = cmd.replace("_C._nn", "nn.functional")
-        return cmd
+        if "_C._nn" in self:
+            self = self.replace("_C._nn", "nn.functional")
+        return self
 
     def send(
         self,
@@ -449,23 +431,18 @@ class TorchTensor(AbstractTensor):
                         param_wrapper.set_()
                     param_wrapper.data = ptr
                     output = param_wrapper
+            elif inplace:
+                self.is_wrapper = True
+                self.set_()
+                self.child = ptr
+                return self
             else:
-                if inplace:
-                    self.is_wrapper = True
-                    self.set_()
-                    self.child = ptr
-                    return self
-                else:
-                    output = ptr if no_wrap else ptr.wrap()
+                output = ptr if no_wrap else ptr.wrap()
 
             if self.requires_grad:
                 # This is for AutogradTensor to work on MultiPointerTensors
                 # With pre-initialized gradients, this should get it from AutogradTensor.grad
-                if preinitialize_grad:
-                    grad = output.child.grad
-                else:
-                    grad = output.attr("grad")
-
+                grad = output.child.grad if preinitialize_grad else output.attr("grad")
                 output.grad = grad
 
                 # Because of the way PyTorch works, .grad is prone to
@@ -483,10 +460,7 @@ class TorchTensor(AbstractTensor):
 
         else:
 
-            children = list()
-            for loc in location:
-                children.append(self.clone().send(loc, no_wrap=True))
-
+            children = [self.clone().send(loc, no_wrap=True) for loc in location]
             output = syft.MultiPointerTensor(children=children)
 
             if not no_wrap:
@@ -534,11 +508,16 @@ class TorchTensor(AbstractTensor):
         if shape is None:
             shape = self.shape
 
-        ptr = syft.PointerTensor.create_pointer(
-            self, location, id_at_location, register, owner, ptr_id, garbage_collect_data, shape
+        return syft.PointerTensor.create_pointer(
+            self,
+            location,
+            id_at_location,
+            register,
+            owner,
+            ptr_id,
+            garbage_collect_data,
+            shape,
         )
-
-        return ptr
 
     def mid_get(self):
         """This method calls .get() on a child pointer and correctly registers the results"""
@@ -588,22 +567,20 @@ class TorchTensor(AbstractTensor):
         # are.
         if isinstance(self, torch.nn.Parameter):
             self.is_wrapper = tensor.data.is_wrapper
-            if inplace:
-                self.data = tensor.data
-                self.grad = tensor.grad
-                return self
-            else:
+            if not inplace:
                 return tensor
 
-        if inplace:
-            self.set_(tensor)
-            if hasattr(tensor, "child"):
-                self.child = tensor.child
-            else:
-                self.is_wrapper = False
+            self.data = tensor.data
+            self.grad = tensor.grad
             return self
-        else:
+        if not inplace:
             return tensor
+        self.set_(tensor)
+        if hasattr(tensor, "child"):
+            self.child = tensor.child
+        else:
+            self.is_wrapper = False
+        return self
 
     def get_(self, *args, **kwargs):
         """
@@ -722,11 +699,7 @@ class TorchTensor(AbstractTensor):
                 .on(self.child, wrap=False)
                 .register_credentials(allowed_users)
             )
-            if no_wrap:
-                return self.child
-            else:
-                return self
-
+            return self.child if no_wrap else self
         private_tensor = (
             syft.PrivateTensor(*args, **kwargs)
             .on(self, wrap=False)
@@ -754,11 +727,7 @@ class TorchTensor(AbstractTensor):
 
         if self.is_wrapper:
             self.child = self.child.fix_prec(*args, **kwargs)
-            if no_wrap:
-                return self.child
-            else:
-                return self
-
+            return self.child if no_wrap else self
         base = kwargs.get("base", 10)
         prec_fractional = kwargs.get("precision_fractional", 3)
 
@@ -775,15 +744,15 @@ class TorchTensor(AbstractTensor):
                 field_type in possible_field_types
             ), f"Choose field_type in {possible_field_types} to build CRT tensors"
 
-            residues = {}
-            for mod in _moduli_for_fields[field_type]:
-                residues[mod] = (
+            residues = {
+                mod: (
                     syft.FixedPrecisionTensor(*args, field=mod, **kwargs)
                     .on(self, wrap=False)
                     .fix_precision(check_range=False)
                     .wrap()
                 )
-
+                for mod in _moduli_for_fields[field_type]
+            }
             fpt_tensor = syft.CRTPrecisionTensor(residues, *args, **kwargs)
 
         elif need_large_prec or storage == "large":
@@ -885,21 +854,20 @@ class TorchTensor(AbstractTensor):
         """
         Allows to call .share() as an inplace operation
         """
-        if self.has_child():
-            requires_grad = kwargs.get("requires_grad", False)
-            # Reset the requires_grad kwargs if the call is local
-            if not isinstance(self.child, syft.PointerTensor):
-                kwargs["requires_grad"] = False
-
-            shared_tensor = self.child.share_(*args, **kwargs)
-
-            if requires_grad and not isinstance(shared_tensor, syft.PointerTensor):
-                shared_tensor = syft.AutogradTensor().on(shared_tensor, wrap=False)
-
-            self.child = shared_tensor
-            return self
-        else:
+        if not self.has_child():
             return self.share(*args, **kwargs)  # TODO change to inplace
+        requires_grad = kwargs.get("requires_grad", False)
+        # Reset the requires_grad kwargs if the call is local
+        if not isinstance(self.child, syft.PointerTensor):
+            kwargs["requires_grad"] = False
+
+        shared_tensor = self.child.share_(*args, **kwargs)
+
+        if requires_grad and not isinstance(shared_tensor, syft.PointerTensor):
+            shared_tensor = syft.AutogradTensor().on(shared_tensor, wrap=False)
+
+        self.child = shared_tensor
+        return self
 
     def combine(self, *pointers):
         """This method will combine the child pointer with another list of pointers

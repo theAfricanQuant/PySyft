@@ -123,18 +123,13 @@ def _simplify_torch_tensor(worker: AbstractWorker, tensor: torch.Tensor) -> bin:
     # note we need to do this explicitly because torch.save does not
     # seem to be including .grad by default
 
-    if tensor.grad is not None:
-        if hasattr(tensor, "child"):
-            if isinstance(tensor.child, PointerTensor):
-                grad_chain = None
-            else:
-                grad_chain = _simplify_torch_tensor(worker, tensor.grad)
-        else:
-            grad_chain = _simplify_torch_tensor(worker, tensor.grad)
-
-    else:
+    if tensor.grad is None:
         grad_chain = None
 
+    elif hasattr(tensor, "child") and isinstance(tensor.child, PointerTensor):
+        grad_chain = None
+    else:
+        grad_chain = _simplify_torch_tensor(worker, tensor.grad)
     chain = None
 
     # I think the pointer bug is is between here
@@ -275,8 +270,7 @@ def _detail_script_module(
 ) -> torch.jit.ScriptModule:
     """"Strategy to deserialize a binary input using Torch load"""
     script_module_stream = io.BytesIO(script_module_bin[0])
-    loaded_module = torch.jit.load(script_module_stream)
-    return loaded_module
+    return torch.jit.load(script_module_stream)
 
 
 def _simplify_torch_size(worker: AbstractWorker, size: torch.Size) -> Tuple[int]:

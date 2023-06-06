@@ -90,8 +90,7 @@ def _compress(decompressed_input_bin: bin) -> bin:
     """
     compress_stream, compress_scheme = _apply_compress_scheme(decompressed_input_bin)
     try:
-        z = scheme_to_bytes[compress_scheme] + compress_stream
-        return z
+        return scheme_to_bytes[compress_scheme] + compress_stream
     except KeyError:
         raise CompressionNotFoundException(
             f"Compression scheme not found for compression code: {str(compress_scheme)}"

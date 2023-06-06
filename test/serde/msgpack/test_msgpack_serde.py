@@ -61,7 +61,7 @@ def test_set_simplify(workers):
     for sets so that the detailer knows how to interpret it."""
 
     me = workers["me"]
-    input = set(["hello", "world"])
+    input = {"hello", "world"}
     set_detail_code = msgpack.proto_type_info(set).code
     str_detail_code = msgpack.proto_type_info(str).code
     target = (set_detail_code, ((str_detail_code, (b"hello",)), (str_detail_code, (b"world",))))
@@ -546,14 +546,14 @@ def test_set(compress):
         compression._apply_compress_scheme = compression.apply_no_compression
 
     # Test with integers
-    _set = set([1, 2])
+    _set = {1, 2}
     set_serialized = syft.serde.serialize(_set)
 
     set_serialized_deserialized = syft.serde.deserialize(set_serialized)
     assert _set == set_serialized_deserialized
 
     # Test with strings
-    _set = set(["hello", "world"])
+    _set = {"hello", "world"}
     set_serialized = syft.serde.serialize(_set)
     set_serialized_deserialized = syft.serde.deserialize(set_serialized)
     assert _set == set_serialized_deserialized
@@ -633,16 +633,12 @@ def test_float(compress):
     ],
 )
 def test_hooked_tensor(compress, compress_scheme):
-    if compress:
-        if compress_scheme == compression.LZ4:
-            compression._apply_compress_scheme = compression.apply_lz4_compression
-        elif compress_scheme == compression.ZSTD:
-            compression._apply_compress_scheme = compression.apply_zstd_compression
-        else:
-            compression._apply_compress_scheme = compression.apply_no_compression
+    if compress and compress_scheme == compression.LZ4:
+        compression._apply_compress_scheme = compression.apply_lz4_compression
+    elif compress and compress_scheme == compression.ZSTD:
+        compression._apply_compress_scheme = compression.apply_zstd_compression
     else:
         compression._apply_compress_scheme = compression.apply_no_compression
-
     t = Tensor(numpy.ones((100, 100)))
     t_serialized = syft.serde.serialize(t)
     assert (

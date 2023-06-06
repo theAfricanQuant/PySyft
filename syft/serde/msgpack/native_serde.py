@@ -42,13 +42,7 @@ def _simplify_collection(
     if shallow:
         return tuple(my_collection)
 
-    # Step 0: initialize empty list
-    pieces = list()
-
-    # Step 1: serialize each part of the collection
-    for part in my_collection:
-        pieces.append(serde._simplify(worker, part))
-
+    pieces = [serde._simplify(worker, part) for part in my_collection]
     # Step 2: return serialization as tuple of simplified items
     return tuple(pieces)
 
@@ -76,7 +70,7 @@ def _detail_collection_list(
     if shallow:
         return list(my_collection)
 
-    pieces = list()
+    pieces = []
 
     # Step 1: deserialize each part of the collection
     for part in my_collection:
@@ -109,7 +103,7 @@ def _detail_collection_set(
     if shallow:
         return set(my_collection)
 
-    pieces = list()
+    pieces = []
 
     # Step 1: deserialize each part of the collection
     for part in my_collection:
@@ -143,12 +137,7 @@ def _detail_collection_tuple(
     if shallow:
         return my_tuple
 
-    pieces = list()
-
-    # Step 1: deserialize each part of the collection
-    for part in my_tuple:
-        pieces.append(serde._detail(worker, part))
-
+    pieces = [serde._detail(worker, part) for part in my_tuple]
     return tuple(pieces)
 
 
@@ -169,13 +158,13 @@ def _simplify_dictionary(worker: AbstractWorker, my_dict: Dict, shallow: bool = 
             input dictionary.
 
     """
-    pieces = list()
-    # for dictionaries we want to simplify both the key and the value
-    for key, value in my_dict.items():
-        pieces.append(
-            (serde._simplify(worker, key), serde._simplify(worker, value) if not shallow else value)
+    pieces = [
+        (
+            serde._simplify(worker, key),
+            serde._simplify(worker, value) if not shallow else value,
         )
-
+        for key, value in my_dict.items()
+    ]
     return tuple(pieces)
 
 

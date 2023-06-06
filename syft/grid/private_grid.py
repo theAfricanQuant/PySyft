@@ -98,12 +98,11 @@ class PrivateGridNetwork(AbstractGrid):
         if not self._check_node_type(self.workers, NodeClient):
             raise NotImplementedError
 
-        if not mpc:
-            result = self._run_unencrypted_inference(id, data)
-        else:
-            result = self._run_encrypted_inference(id, data)
-
-        return result
+        return (
+            self._run_unencrypted_inference(id, data)
+            if not mpc
+            else self._run_encrypted_inference(id, data)
+        )
 
     def query_model_hosts(
         self, id: str, mpc: bool = False
@@ -125,14 +124,12 @@ class PrivateGridNetwork(AbstractGrid):
         if not self._check_node_type(self.workers, NodeClient):
             raise NotImplementedError
 
-        # Search for non mpc models.
-        if not mpc:
-            for node in self.workers:
-                if id in node.models:
-                    return node
-        else:
+        if mpc:
             # Search for MPC models
             return self._query_encrypted_model_hosts(id)
+        for node in self.workers:
+            if id in node.models:
+                return node
 
     def _host_encrypted_model(self, model, n_shares: int = 4):
         """ This method wiil choose some grid nodes at grid network to host an encrypted model.
@@ -187,35 +184,31 @@ class PrivateGridNetwork(AbstractGrid):
             Raises:
                 RuntimeError: If model id not found.
         """
-        host = self.query_model_hosts(id)
-
-        # If it's registered on grid nodes.
-        if host:
-            model = host.search(id)[0].get(deregister_ptr=False)
-            mpc_nodes = set()
-            crypto_provider = None
-
-            # Check every state used by this plan
-            for state_id in model.state.state_ids:
-                hook = host.hook
-                obj = hook.local_worker._objects.get(state_id)
-
-                # Decrease in Tensor Hierarchy.
-                # (we want be a AdditiveSharingTensor to recover workers/crypto_provider addresses)
-                while not isinstance(obj, AdditiveSharingTensor):
-                    obj = obj.child
-
-                # Get a list of mpc nodes.
-                nodes = map(lambda x: hook.local_worker._known_workers.get(x), obj.child.keys())
-
-                mpc_nodes.update(set(nodes))
-
-                if obj.crypto_provider:
-                    crypto_provider = obj.crypto_provider
-
-                return (host, mpc_nodes, crypto_provider)
-        else:
+        if not (host := self.query_model_hosts(id)):
             raise RuntimeError("Model ID not found!")
+        model = host.search(id)[0].get(deregister_ptr=False)
+        mpc_nodes = set()
+        crypto_provider = None
+
+        # Check every state used by this plan
+        for state_id in model.state.state_ids:
+            hook = host.hook
+            obj = hook.local_worker._objects.get(state_id)
+
+            # Decrease in Tensor Hierarchy.
+            # (we want be a AdditiveSharingTensor to recover workers/crypto_provider addresses)
+            while not isinstance(obj, AdditiveSharingTensor):
+                obj = obj.child
+
+            # Get a list of mpc nodes.
+            nodes = map(lambda x: hook.local_worker._known_workers.get(x), obj.child.keys())
+
+            mpc_nodes.update(set(nodes))
+
+            if obj.crypto_provider:
+                crypto_provider = obj.crypto_provider
+
+            return (host, mpc_nodes, crypto_provider)
 
     def _run_unencrypted_inference(self, id: str, data) -> torch.Tensor:
         """ Search for a plain-text model registered on grid network, if found,
@@ -228,8 +221,7 @@ class PrivateGridNetwork(AbstractGrid):
             Raises:
                 RuntimeError: If model id not found.
         """
-        node = self.query_model_hosts(id)
-        if node:
+        if node := self.query_model_hosts(id):
             response = node.run_remote_inference(model_id=id, data=data)
             return torch.tensor(response)
         else:

@@ -84,8 +84,7 @@ class WebsocketClientWorker(BaseWorker):
 
     def _forward_to_websocket_server_worker(self, message: bin) -> bin:
         self.ws.send(str(binascii.hexlify(message)))
-        response = binascii.unhexlify(self.ws.recv()[2:-1])
-        return response
+        return binascii.unhexlify(self.ws.recv()[2:-1])
 
     def _recv_msg(self, message: bin) -> bin:
         """Forwards a message to the WebsocketServerWorker"""
@@ -99,10 +98,10 @@ class WebsocketClientWorker(BaseWorker):
             logger.warning("Created new websocket connection")
             time.sleep(0.1)
             response = self._forward_to_websocket_server_worker(message)
-            if not self.ws.connected:
-                raise RuntimeError(
-                    "Websocket connection closed and creation of new connection failed."
-                )
+        if not self.ws.connected:
+            raise RuntimeError(
+                "Websocket connection closed and creation of new connection failed."
+            )
         return response
 
     def _send_msg_and_deserialize(self, command_name: str, *args, **kwargs):
@@ -234,8 +233,8 @@ class WebsocketClientWorker(BaseWorker):
         """
         out = "<"
         out += str(type(self)).split("'")[1].split(".")[-1]
-        out += " id:" + str(self.id)
-        out += " #objects local:" + str(len(self._objects))
-        out += " #objects remote: " + str(self.objects_count_remote())
+        out += f" id:{str(self.id)}"
+        out += f" #objects local:{len(self._objects)}"
+        out += f" #objects remote: {str(self.objects_count_remote())}"
         out += ">"
         return out

@@ -211,10 +211,10 @@ class TorchHook(FrameworkHook):
         syft.local_worker = self.local_worker
         syft.hook = self
 
-    def create_shape(cls, shape_dims):
+    def create_shape(self, shape_dims):
         return torch.Size(shape_dims)
 
-    def create_wrapper(cls, wrapper_type):
+    def create_wrapper(self, wrapper_type):
         # Note this overrides FrameworkHook.create_wrapper, so it must conform to
         # that classmethod's signature
         assert (
@@ -223,7 +223,7 @@ class TorchHook(FrameworkHook):
 
         return torch.Tensor()
 
-    def create_zeros(cls, *shape, dtype=None, **kwargs):
+    def create_zeros(self, *shape, dtype=None, **kwargs):
         return torch.zeros(*shape, dtype=dtype, **kwargs)
 
     def _hook_native_tensor(self, tensor_type: type, syft_type: type):
@@ -331,10 +331,7 @@ class TorchHook(FrameworkHook):
             # specific place otherwise it will get deleted
             if not isinstance(data, torch.Tensor) or hasattr(data, "child"):
                 p = torch.Tensor._make_subclass(cls, torch.Tensor(), requires_grad)
-                if isinstance(data, torch.Tensor):  # so it's a wrapper: remove it
-                    p.child = data.child
-                else:
-                    p.child = data
+                p.child = data.child if isinstance(data, torch.Tensor) else data
             else:
                 p = torch.Tensor._make_subclass(cls, data, requires_grad)
 
@@ -529,8 +526,8 @@ class TorchHook(FrameworkHook):
         def generate_method(method_name):
             def method(self, *args, **kwargs):
 
-                arg_shapes = list([self.shape])
-                arg_ids = list([self.id])
+                arg_shapes = [self.shape]
+                arg_ids = [self.id]
 
                 # Convert scalar arguments to tensors to be able to use them with plans
                 args = list(args)
@@ -909,7 +906,7 @@ class TorchHook(FrameworkHook):
                 total_norm = max(p.grad.data.abs().max() for p in parameters)
             else:
                 # all parameters are remote
-                if all([param_is_pointer_tensor(param) for param in parameters]):
+                if all(param_is_pointer_tensor(param) for param in parameters):
                     total_norm = torch.zeros(1)
                     # Let's send the total norm over to the remote where the remote tensor is
                     total_norm = total_norm.send(parameters[0].location)

@@ -11,8 +11,7 @@ if dependency_check.tensorflow_available:
     from tensorflow.python.framework.ops import EagerTensor
     from tensorflow.python.ops.resource_variable_ops import ResourceVariable
 
-    framework_tensors.append(EagerTensor)
-    framework_tensors.append(ResourceVariable)
+    framework_tensors.extend((EagerTensor, ResourceVariable))
     framework_shapes.append(tf.TensorShape)
 
     framework_layer_modules.append(tf.Module)
@@ -20,8 +19,7 @@ if dependency_check.tensorflow_available:
 if dependency_check.torch_available:
     import torch
 
-    framework_tensors.append(torch.Tensor)
-    framework_tensors.append(torch.nn.Parameter)
+    framework_tensors.extend((torch.Tensor, torch.nn.Parameter))
     framework_shapes.append(torch.Size)
 
     framework_layer_module = torch.nn.Module

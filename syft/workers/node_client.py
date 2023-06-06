@@ -109,10 +109,7 @@ class NodeClient(WebsocketClientWorker, FederatedClient):
         cred_dict[REQUEST_MSG.TYPE_FIELD] = REQUEST_MSG.AUTHENTICATE
         response = self._forward_json_to_websocket_server_worker(cred_dict)
 
-        # If succeeded, update node's reference and update client's credential.
-        node_id = self._return_bool_result(response, RESPONSE_MSG.NODE_ID)
-
-        if node_id:
+        if node_id := self._return_bool_result(response, RESPONSE_MSG.NODE_ID):
             self._update_node_reference(node_id)
         else:
             raise RuntimeError("Invalid user.")
@@ -132,7 +129,7 @@ class NodeClient(WebsocketClientWorker, FederatedClient):
                 address (str) : Adress of remote worker.
         """
         url = urlparse(address)
-        secure = True if url.scheme == "wss" else False
+        secure = url.scheme == "wss"
         return (secure, url.hostname, url.port)
 
     def _get_node_id(self) -> str:
@@ -162,8 +159,7 @@ class NodeClient(WebsocketClientWorker, FederatedClient):
                 node_response (bytes) : response payload.
         """
         self.ws.send_binary(message)
-        response = self.ws.recv()
-        return response
+        return self.ws.recv()
 
     def _return_bool_result(self, result, return_key=None):
         if result.get(RESPONSE_MSG.SUCCESS):
@@ -269,4 +265,4 @@ class NodeClient(WebsocketClientWorker, FederatedClient):
         return self._return_bool_result(response)
 
     def __str__(self) -> str:
-        return "Federated Worker < id: " + self.id + " >"
+        return f"Federated Worker < id: {self.id} >"

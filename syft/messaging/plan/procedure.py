@@ -130,12 +130,11 @@ class Procedure(object):
         return type_obj(operation)
 
     def copy(self) -> "Procedure":
-        procedure = Procedure(
+        return Procedure(
             operations=copy.deepcopy(self.operations),
             arg_ids=self.arg_ids,
             result_ids=self.result_ids,
         )
-        return procedure
 
     @staticmethod
     def simplify(worker: AbstractWorker, procedure: "Procedure") -> tuple:

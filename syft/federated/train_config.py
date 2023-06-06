@@ -78,15 +78,15 @@ class TrainConfig:
         """Returns the string representation of a TrainConfig."""
         out = "<"
         out += str(type(self)).split("'")[1].split(".")[-1]
-        out += " id:" + str(self.id)
-        out += " owner:" + str(self.owner.id)
+        out += f" id:{str(self.id)}"
+        out += f" owner:{str(self.owner.id)}"
 
         if self.location:
-            out += " location:" + str(self.location.id)
+            out += f" location:{str(self.location.id)}"
 
-        out += " epochs: " + str(self.epochs)
-        out += " batch_size: " + str(self.batch_size)
-        out += " optimizer_args: " + str(self.optimizer_args)
+        out += f" epochs: {str(self.epochs)}"
+        out += f" batch_size: {str(self.batch_size)}"
+        out += f" optimizer_args: {str(self.optimizer_args)}"
 
         out += ">"
         return out
@@ -119,10 +119,7 @@ class TrainConfig:
         # Send loss function
         self.loss_fn_ptr, self._loss_fn_id = self._wrap_and_send_obj(self.loss_fn, location)
 
-        # Send train configuration itself
-        ptr = self.owner.send(self, location)
-
-        return ptr
+        return self.owner.send(self, location)
 
     def get(self, location):
         return self.owner.request_obj(self, location)
@@ -189,7 +186,7 @@ class TrainConfig:
         detailed_optimizer = sy.serde.msgpack.serde._detail(worker, optimizer)
         detailed_optimizer_args = sy.serde.msgpack.serde._detail(worker, optimizer_args)
 
-        train_config = TrainConfig(
+        return TrainConfig(
             model=None,
             loss_fn=None,
             owner=worker,
@@ -203,5 +200,3 @@ class TrainConfig:
             max_nr_batches=max_nr_batches,
             shuffle=shuffle,
         )
-
-        return train_config
