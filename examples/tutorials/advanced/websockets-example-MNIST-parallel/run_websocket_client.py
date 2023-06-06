@@ -143,11 +143,11 @@ def evaluate_model_on_worker(
     correct = result["nr_correct_predictions"]
     len_dataset = result["nr_predictions"]
     hist_pred = result["histogram_predictions"]
-    hist_target = result["histogram_target"]
-
     if print_target_hist:
+        hist_target = result["histogram_target"]
+
         logger.info("Target histogram: %s", hist_target)
-    percentage_0_3 = int(100 * sum(hist_pred[0:4]) / len_dataset)
+    percentage_0_3 = int(100 * sum(hist_pred[:4]) / len_dataset)
     percentage_4_6 = int(100 * sum(hist_pred[4:7]) / len_dataset)
     percentage_7_9 = int(100 * sum(hist_pred[7:10]) / len_dataset)
     logger.info(
@@ -220,7 +220,7 @@ async def main():
             np.set_printoptions(formatter={"float": "{: .0f}".format})
             for worker_id, worker_model, _ in results:
                 evaluate_model_on_worker(
-                    model_identifier="Model update " + worker_id,
+                    model_identifier=f"Model update {worker_id}",
                     worker=testing,
                     dataset_key="mnist_testing",
                     model=worker_model,

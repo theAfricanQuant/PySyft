@@ -68,15 +68,13 @@ class RNNCell(RNNCellBase):
         elif nonlinearity == "relu":
             self.nonlinearity = torch.relu
         else:
-            raise ValueError("Unknown nonlinearity: {}".format(nonlinearity))
+            raise ValueError(f"Unknown nonlinearity: {nonlinearity}")
 
     def forward(self, x, h=None):
 
         if h is None:
             h = self.init_hidden(x)
-        h_ = self.nonlinearity(self.fc_xh(x) + self.fc_hh(h))
-
-        return h_
+        return self.nonlinearity(self.fc_xh(x) + self.fc_hh(h))
 
 
 class GRUCell(RNNCellBase):
@@ -102,9 +100,7 @@ class GRUCell(RNNCellBase):
         updategate = torch.sigmoid(x_z + h_z)
         newgate = torch.tanh(x_n + (resetgate * h_n))
 
-        h_ = newgate + updategate * (h - newgate)
-
-        return h_
+        return newgate + updategate * (h - newgate)
 
 
 class LSTMCell(RNNCellBase):
@@ -326,15 +322,14 @@ class RNNBase(nn.Module):
                     )
                 else:
                     h_next[layer, :, :] = rnn_layers[layer](x[t, :, :], h[layer, :, :])
+            elif self.is_lstm:
+                h_next[layer, :, :], c_next[layer, :, :] = rnn_layers[layer](
+                    h_next[layer - 1, :, :].clone(), (h[layer, :, :], c[layer, :, :])
+                )
             else:
-                if self.is_lstm:
-                    h_next[layer, :, :], c_next[layer, :, :] = rnn_layers[layer](
-                        h_next[layer - 1, :, :].clone(), (h[layer, :, :], c[layer, :, :])
-                    )
-                else:
-                    h_next[layer, :, :] = rnn_layers[layer](
-                        h_next[layer - 1, :, :].clone(), h[layer, :, :]
-                    )
+                h_next[layer, :, :] = rnn_layers[layer](
+                    h_next[layer - 1, :, :].clone(), h[layer, :, :]
+                )
 
         return h_next, c_next
 

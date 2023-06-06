@@ -33,11 +33,11 @@ def test_string_methods():
     assert string.endswith("Syft") == True
     assert string.endswith(String("Syft")) == True
 
-    assert (string > "Hello PySyfa") == True
-    assert (string >= "Hello PySyfa") == True
+    assert string > "Hello PySyfa"
+    assert string >= "Hello PySyfa"
 
-    assert (string < "Hello PySyfz") == True
-    assert (string <= "Hello PySyfz") == True
+    assert string < "Hello PySyfz"
+    assert string <= "Hello PySyfz"
 
     assert String(" Hello").lstrip() == "Hello"
     assert String("Hello ").rstrip() == "Hello"
@@ -53,7 +53,7 @@ def test_string_methods():
 
     assert string + string == "Hello PySyftHello PySyft"
     assert isinstance(string + string, String)
-    assert isinstance(string + " !", String)
+    assert isinstance(f"{string} !", String)
 
     assert f"{string} !" == "Hello PySyft !"
 

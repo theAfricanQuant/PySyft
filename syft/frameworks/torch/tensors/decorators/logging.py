@@ -30,9 +30,7 @@ class LoggingTensor(AbstractTensor):
         Note the subtlety between self and _self: you should use _self and NOT self.
         """
         print("Log method add")
-        response = getattr(_self, "add")(*args, **kwargs)
-
-        return response
+        return getattr(_self, "add")(*args, **kwargs)
 
     def manual_add(self, *args, **kwargs):
         """

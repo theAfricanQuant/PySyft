@@ -68,13 +68,9 @@ def _force_full_bufferize(worker: AbstractWorker, obj: object) -> object:
     # for this type. If there is, return the full converted object.
     current_type = type(obj)
     if current_type in forced_full_bufferizers:
-        result = (
-            forced_full_bufferizers[current_type][0],
-            forced_full_bufferizers[current_type][1](worker, obj),
-        )
-        return result
-    # If we already tried to find a full bufferizer for this type but failed, we should
-    # bufferize it instead.
+        return forced_full_bufferizers[current_type][
+            0
+        ], forced_full_bufferizers[current_type][1](worker, obj)
     elif current_type in no_full_bufferizers_found:
         return _bufferize(worker, obj)
     else:
@@ -91,12 +87,9 @@ def _force_full_bufferize(worker: AbstractWorker, obj: object) -> object:
                 # Store the inheritance_type in forced_full_bufferizers so next
                 # time we see this type serde will be faster.
                 forced_full_bufferizers[current_type] = forced_full_bufferizers[inheritance_type]
-                result = (
-                    forced_full_bufferizers[current_type][0],
-                    forced_full_bufferizers[current_type][1](worker, obj),
-                )
-                return result
-
+                return forced_full_bufferizers[current_type][
+                    0
+                ], forced_full_bufferizers[current_type][1](worker, obj)
         # If there is not a full_bufferizer for this
         # object, then we bufferize it.
         no_full_bufferizers_found.add(current_type)
@@ -247,10 +240,7 @@ def serialize(
     # otherwise we output the compressed stream with header set to '1'
     # even if compressed flag is set to false by the caller we
     # output the input stream as it is with header set to '0'
-    if force_no_compression:
-        return binary
-    else:
-        return compression._compress(binary)
+    return binary if force_no_compression else compression._compress(binary)
 
 
 def deserialize(binary: bin, worker: AbstractWorker = None, unbufferizes=True) -> object:
@@ -285,8 +275,7 @@ def deserialize(binary: bin, worker: AbstractWorker = None, unbufferizes=True) -
 
     # 3) Convert back to a Python object
     message_type = msg_wrapper.WhichOneof("contents")
-    python_obj = _unbufferize(worker, getattr(msg_wrapper, message_type))
-    return python_obj
+    return _unbufferize(worker, getattr(msg_wrapper, message_type))
 
 
 def _bufferize(worker: AbstractWorker, obj: object, **kwargs) -> object:
@@ -312,17 +301,11 @@ def _bufferize(worker: AbstractWorker, obj: object, **kwargs) -> object:
     # breakpoint()
     current_type = type(obj)
     if current_type in bufferizers:
-        result = bufferizers[current_type](worker, obj, **kwargs)
-        return result
+        return bufferizers[current_type](worker, obj, **kwargs)
     elif current_type in inherited_bufferizers_found:
-        result = (
-            inherited_bufferizers_found[current_type][0],
-            inherited_bufferizers_found[current_type][1](worker, obj, **kwargs),
-        )
-        return result
-
-    # If we already tried to find a bufferizer for this type but failed, we should
-    # just return the object as it is.
+        return inherited_bufferizers_found[current_type][
+            0
+        ], inherited_bufferizers_found[current_type][1](worker, obj, **kwargs)
     elif current_type in no_bufferizers_found:
         raise Exception(f"No corresponding Protobuf message found for {current_type}")
 
@@ -340,9 +323,7 @@ def _bufferize(worker: AbstractWorker, obj: object, **kwargs) -> object:
                 # Store the inheritance_type in bufferizers so next time we see this type
                 # serde will be faster.
                 inherited_bufferizers_found[current_type] = bufferizers[inheritance_type]
-                result = inherited_bufferizers_found[current_type](worker, obj, **kwargs)
-                return result
-
+                return inherited_bufferizers_found[current_type](worker, obj, **kwargs)
         no_bufferizers_found.add(current_type)
         raise Exception(f"No corresponding Protobuf message found for {current_type}")
 

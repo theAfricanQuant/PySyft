@@ -36,16 +36,14 @@ class NetworkMonitor:
         capture_output = []
         if interface is None:
             raise Exception("Please provide the interface used.")
-        else:
-            capture = pyshark.LiveCapture(
-                interface=interface,
-                bpf_filter=bpf_filter,
-                tshark_path=tshark_path,
-                output_file=output_file,
-            )
-            capture.sniff(timeout=timeout)
-            length = len(capture)
-            return capture, length
+        capture = pyshark.LiveCapture(
+            interface=interface,
+            bpf_filter=bpf_filter,
+            tshark_path=tshark_path,
+            output_file=output_file,
+        )
+        capture.sniff(timeout=timeout)
+        return capture, len(capture)
 
     @staticmethod
     def read_packet(index=None, capture_input=None):
@@ -68,11 +66,10 @@ class NetworkMonitor:
             raise Exception("The index passed is not an integer.")
         else:
             length = len(capture_input)
-            if index < length:
-                try:
-                    packet = capture_input[index]
-                    return packet.pretty_print()
-                except:
-                    raise Exception("Something went wrong when retrieving packet data.")
-            else:
+            if index >= length:
                 raise Exception("The index given is not valid.")
+            try:
+                packet = capture_input[index]
+                return packet.pretty_print()
+            except:
+                raise Exception("Something went wrong when retrieving packet data.")

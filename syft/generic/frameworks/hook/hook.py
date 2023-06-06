@@ -59,9 +59,7 @@ class FrameworkHook(ABC):
         pass
 
     @classmethod
-    def _transfer_methods_to_framework_class(
-        hook_cls, framework_cls: type, from_cls: type, exclude: List[str]
-    ):
+    def _transfer_methods_to_framework_class(cls, framework_cls: type, from_cls: type, exclude: List[str]):
         """Adds methods from the from_cls class to the framework_cls class.
 
         The class from_cls is a proxy class useful to avoid extending
@@ -114,10 +112,7 @@ class FrameworkHook(ABC):
 
         @property
         def location(self):
-            if hasattr(self, "child"):
-                return self.child.location
-            else:
-                return None
+            return self.child.location if hasattr(self, "child") else None
 
         tensor_type.location = location
 
@@ -415,7 +410,7 @@ class FrameworkHook(ABC):
 
                 # if self is a natural tensor but the first argument isn't,
                 # wrap self with the appropriate type and re-run
-                if len(args) > 0 and hasattr(args[0], "child"):
+                if args and hasattr(args[0], "child"):
 
                     # if we allow this for PointerTensors it opens the potential
                     # that we could accidentally serialize and send a tensor in the
@@ -455,7 +450,7 @@ class FrameworkHook(ABC):
                         ):
                             # TODO: add check to make sure this isn't getting around a security class
 
-                            _args = list()
+                            _args = []
                             _args.append(type(self)().on(args[0], wrap=False))
                             for a in args[1:]:
                                 _args.append(a)
@@ -550,10 +545,7 @@ class FrameworkHook(ABC):
                     new_self=self,
                     wrap_args=self.get_class_attributes(),
                 )
-                if args:
-                    response.parents = (self, args[0])
-                else:
-                    response.parents = self
+                response.parents = (self, args[0]) if args else self
                 response.command = method_name
             return response
 
@@ -625,7 +617,7 @@ class FrameworkHook(ABC):
             owner = pointer.owner
             location = pointer.location
 
-            if len(args) > 0:
+            if args:
                 if isinstance(args[0], ObjectPointer):
                     if args[0].location.id != location.id:
                         raise TensorsNotCollocatedException(pointer, args[0], attr)
@@ -636,10 +628,7 @@ class FrameworkHook(ABC):
             response = owner.send_command(location, command)
 
             # For inplace methods, just directly return self
-            if syft.framework.is_inplace_method(attr):
-                return self
-
-            return response
+            return self if syft.framework.is_inplace_method(attr) else response
 
         return overloaded_pointer_method
 
@@ -724,7 +713,7 @@ class FrameworkHook(ABC):
 
         # The outputs of the following attributed won't
         # be wrapped
-        ignored_attr = set(["__str__", "__repr__", "__format__"])
+        ignored_attr = {"__str__", "__repr__", "__format__"}
 
         if isinstance(value, str) and attr not in ignored_attr:
 

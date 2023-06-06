@@ -60,7 +60,7 @@ class _DataLoaderIter(object):
         # Assign the first worker to invoke
         self.worker_idx = worker_idx
         # List workers in a dict
-        self.workers = {idx: worker for idx, worker in enumerate(loader.workers)}
+        self.workers = dict(enumerate(loader.workers))
 
         # The function used to stack all samples together
         self.collate_fn = loader.collate_fn
@@ -82,9 +82,7 @@ class _DataLoaderIter(object):
 
         try:
             indices = next(self.sample_iter[worker])
-            batch = self.collate_fn([self.federated_dataset[worker][i] for i in indices])
-            return batch
-        # All the data for this worker has been used
+            return self.collate_fn([self.federated_dataset[worker][i] for i in indices])
         except StopIteration:
             # Forget this worker
             del self.workers[self.worker_idx]
@@ -99,8 +97,7 @@ class _DataLoaderIter(object):
             self.stop()
 
     def __next__(self):
-        batch = self._get_batch()
-        return batch
+        return self._get_batch()
 
     def __iter__(self):
         return self
@@ -133,9 +130,9 @@ class _DataLoaderOneWorkerIter(object):
 
         try:
             indices = next(self.sample_iter)
-            batch = self.collate_fn([self.federated_dataset[self.worker][i] for i in indices])
-            return batch
-        # All the data for this worker has been used
+            return self.collate_fn(
+                [self.federated_dataset[self.worker][i] for i in indices]
+            )
         except StopIteration:
             # If nothing is found, stop the iterator
             self.stop()
@@ -192,7 +189,7 @@ class FederatedDataLoader(object):
         iter_per_worker=False,
         **kwargs,
     ):
-        if len(kwargs) > 0:
+        if kwargs:
             options = ", ".join([f"{k}: {v}" for k, v in kwargs.items()])
             logging.warning(f"The following options are not supported: {options}")
 
@@ -223,18 +220,17 @@ class FederatedDataLoader(object):
 
         if iter_per_worker:
             self.num_iterators = len(self.workers)
+        elif len(self.workers) == 1:
+            self.num_iterators = 1
         else:
-            # You can't have more iterators than n - 1 workers, because you always
-            # need a worker idle in the worker switch process made by iterators
-            if len(self.workers) == 1:
-                self.num_iterators = 1
-            else:
-                self.num_iterators = min(num_iterators, len(self.workers) - 1)
+            self.num_iterators = min(num_iterators, len(self.workers) - 1)
 
     def __iter__(self):
-        self.iterators = list()
-        for idx in range(self.num_iterators):
-            self.iterators.append(self.iter_class(self, worker_idx=idx))
+        self.iterators = []
+        self.iterators.extend(
+            self.iter_class(self, worker_idx=idx)
+            for idx in range(self.num_iterators)
+        )
         return self
 
     def __next__(self):
@@ -251,7 +247,4 @@ class FederatedDataLoader(object):
 
     def __len__(self):
         length = len(self.federated_dataset) / self.batch_size
-        if self.drop_last:
-            return int(length)
-        else:
-            return math.ceil(length)
+        return int(length) if self.drop_last else math.ceil(length)

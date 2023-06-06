@@ -52,8 +52,7 @@ class PointerProtocol(ObjectPointer):
                 f"This protocol has been sent to {self.location.id}, but you provided "
                 f"local arguments or pointers to {location.id}."
             )
-        response = self.request_remote_run(location, args, kwargs)
-        return response
+        return self.request_remote_run(location, args, kwargs)
 
     def request_remote_run(self, location: "BaseWorker", args, kwargs) -> object:
         """Requests remote protocol execution.
@@ -86,8 +85,7 @@ class PointerProtocol(ObjectPointer):
         This is an alias to fetch_protocol, to behave like a pointer
         """
         copy = not deregister_ptr
-        protocol = self.owner.fetch_protocol(self.id_at_location, self.location, copy=copy)
-        return protocol
+        return self.owner.fetch_protocol(self.id_at_location, self.location, copy=copy)
 
     @staticmethod
     def simplify(worker: AbstractWorker, ptr: "PointerPlan") -> tuple:
@@ -107,24 +105,17 @@ class PointerProtocol(ObjectPointer):
         obj_id = sy.serde.msgpack.serde._detail(worker, obj_id)
         worker_id = sy.serde.msgpack.serde._detail(worker, worker_id)
 
-        # If the pointer received is pointing at the current worker, we load the tensor instead
         if worker_id == worker.id:
-            plan = worker.get_obj(id_at_location)
+            return worker.get_obj(id_at_location)
+        location = sy.hook.local_worker.get_worker(worker_id)
 
-            return plan
-        # Else we keep the same Pointer
-        else:
-            location = sy.hook.local_worker.get_worker(worker_id)
-
-            ptr = PointerProtocol(
-                location=location,
-                id_at_location=id_at_location,
-                owner=worker,
-                garbage_collect_data=garbage_collect_data,
-                id=obj_id,
-            )
-
-            return ptr
+        return PointerProtocol(
+            location=location,
+            id_at_location=id_at_location,
+            owner=worker,
+            garbage_collect_data=garbage_collect_data,
+            id=obj_id,
+        )
 
     def wrap(self):
         return self

@@ -53,7 +53,7 @@ def test_send_gc_false(workers):
     x_ptr = x.send(alice)
     x_ptr.gc = False
     assert x_ptr.child.garbage_collect_data == False
-    assert x_ptr.gc == False, "property GC is not in sync"
+    assert not x_ptr.gc, "property GC is not in sync"
     assert x_ptr.garbage_collection == False, "property garbage_collection is not in sync"
 
 

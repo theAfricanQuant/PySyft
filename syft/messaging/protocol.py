@@ -51,7 +51,7 @@ class Protocol(AbstractObject):
         owner = owner or sy.framework.hook.local_worker
         super(Protocol, self).__init__(id, owner, tags, description, child=None)
 
-        self.plans = plans or list()
+        self.plans = plans or []
         self.workers_resolved = len(self.plans) and all(
             isinstance(w, AbstractWorker) for w, p in self.plans
         )
@@ -85,7 +85,7 @@ class Protocol(AbstractObject):
                 f"This protocol is already deployed to {', '.join(worker.id for worker, plan in self.plans)}."
             )
 
-        n_workers = len(set(worker for worker, plan in self.plans))
+        n_workers = len({worker for worker, plan in self.plans})
 
         # to correctly map workers, we must have exactly 1 worker for 1 plan
         # or 1 worker for 1 fictive worker.
@@ -104,7 +104,8 @@ class Protocol(AbstractObject):
 
     def __call__(self, *args, **kwargs):
         has_promised_inputs = any(
-            [hasattr(arg, "child") and isinstance(arg.child, Promise) for arg in args]
+            hasattr(arg, "child") and isinstance(arg.child, Promise)
+            for arg in args
         )
         if has_promised_inputs:
             return self.build_with_promises(*args, **kwargs)
@@ -177,9 +178,7 @@ class Protocol(AbstractObject):
                 )
 
             print("send remote run request to", self.location.id)
-            response = self.request_remote_run(location, args, kwargs)
-            return response
-
+            return self.request_remote_run(location, args, kwargs)
         # Local and sequential coordination of the plan execution
         previous_worker_id = None
         response = None
@@ -287,11 +286,7 @@ class Protocol(AbstractObject):
             else:
                 raise TypeError("This is not a valid Plan")
 
-            if isinstance(worker, str):
-                worker_id = worker
-            else:
-                worker_id = worker.id
-
+            worker_id = worker if isinstance(worker, str) else worker.id
             plans_reference.append((worker_id, plan_id))
 
         return (
@@ -337,9 +332,9 @@ class Protocol(AbstractObject):
                     plan = plan_pointer.get()
                 plans.append((worker.id, plan))
 
-        protocol = sy.Protocol(plans=plans, id=id, owner=worker, tags=tags, description=description)
-
-        return protocol
+        return sy.Protocol(
+            plans=plans, id=id, owner=worker, tags=tags, description=description
+        )
 
     @staticmethod
     def detail(worker: BaseWorker, protocol_tuple: Tuple) -> "Protocol":
@@ -385,11 +380,7 @@ class Protocol(AbstractObject):
             else:
                 raise TypeError("This is not a valid Plan")
 
-            if isinstance(worker, str):
-                worker_id = worker
-            else:
-                worker_id = worker.id
-
+            worker_id = worker if isinstance(worker, str) else worker.id
             plan_assignment = pb_protocol.plan_assignments.add()
             sy.serde.protobuf.proto.set_protobuf_id(plan_assignment.worker_id, worker_id)
             sy.serde.protobuf.proto.set_protobuf_id(plan_assignment.plan_id, plan_id)
@@ -452,10 +443,7 @@ class Protocol(AbstractObject):
         repr = f"<Protocol id:{self.id} owner:{self.owner.id}{' resolved' if self.workers_resolved else ''}>"
         for worker, plan in self.plans:
             repr += "\n - "
-            if isinstance(worker, str):
-                repr += worker
-            else:
-                repr += str(worker.id)
+            repr += worker if isinstance(worker, str) else str(worker.id)
             repr += ": "
             repr += plan.__repr__()
         return repr
@@ -485,7 +473,7 @@ class Protocol(AbstractObject):
                 in the protocol
         """
         dict_workers = {w.id: w for w in workers}
-        set_fake_ids = set(worker for worker, _ in self.plans)
+        set_fake_ids = {worker for worker, _ in self.plans}
         set_real_ids = set(dict_workers.keys())
 
         if 0 < len(set_fake_ids.intersection(set_real_ids)) < len(set_real_ids):
@@ -501,21 +489,14 @@ class Protocol(AbstractObject):
         if set_fake_ids == set_real_ids:
             self.plans = [(dict_workers[w], p) for w, p in self.plans]
 
-        # If there is an exact one-to-one mapping, just iterate and keep the order
-        # provided when assigning the workers
         elif len(workers) == len(self.plans):
             self.plans = [(worker, plan) for (_, plan), worker in zip(self.plans, workers)]
 
-        # Else, there are duplicates in the self.plans keys and we need to build
-        # a small map
-        # Example:
-        #   protocol.plans == [("w1", plan1), ("w2", plan2), ("w1", plan3)
-        #   protocol.deploy(alice, bob)
         else:
             worker_map = {
                 abstract_worker_name: worker
                 for worker, abstract_worker_name in zip(
-                    workers, set(name for name, plan in self.plans)
+                    workers, {name for name, plan in self.plans}
                 )
             }
             self.plans = [(worker_map[name], plan) for name, plan in self.plans]

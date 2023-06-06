@@ -27,10 +27,10 @@ type_rule = {
 forward_func = {
     torch.Tensor: lambda i: i.child
     if hasattr(i, "child")
-    else (_ for _ in ()).throw(PureFrameworkTensorFoundError),
+    else iter(()).throw(PureFrameworkTensorFoundError),
     torch.nn.Parameter: lambda i: i.child
     if hasattr(i, "child")
-    else (_ for _ in ()).throw(PureFrameworkTensorFoundError),
+    else iter(()).throw(PureFrameworkTensorFoundError),
     AutogradTensor: get_child,
     LoggingTensor: get_child,
     PaillierTensor: get_child,

@@ -103,7 +103,7 @@ def get_next_batches(fdataloader: sy.FederatedDataLoader, nr_batches: int):
         worker = fdataloader.federated_dataset.datasets[worker_id].location
         batches[worker] = []
     try:
-        for i in range(nr_batches):
+        for _ in range(nr_batches):
             next_batches = next(fdataloader)
             for worker in next_batches:
                 batches[worker].append(next_batches[worker])
@@ -128,12 +128,11 @@ def train(
 
     while True:
         logger.debug(
-            "Starting training round, batches [{}, {}]".format(counter, counter + nr_batches)
+            f"Starting training round, batches [{counter}, {counter + nr_batches}]"
         )
         data_for_all_workers = True
         for worker in batches:
-            curr_batches = batches[worker]
-            if curr_batches:
+            if curr_batches := batches[worker]:
                 models[worker], loss_values[worker] = train_on_batches(
                     worker, curr_batches, model, device, lr
                 )

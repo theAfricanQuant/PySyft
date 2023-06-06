@@ -1052,14 +1052,20 @@ def make_string(**kwargs):
     return [
         {
             "value": syft.generic.string.String(
-                "Hello World", id=1234, tags=set(["tag1", "tag2"]), description="description"
+                "Hello World",
+                id=1234,
+                tags={"tag1", "tag2"},
+                description="description",
             ),
             "simplified": (
                 CODE[syft.generic.string.String],
                 (
                     (CODE[str], (b"Hello World",)),
                     1234,
-                    (CODE[set], ((CODE[str], (b"tag1",)), (CODE[str], (b"tag2",)))),
+                    (
+                        CODE[set],
+                        ((CODE[str], (b"tag1",)), (CODE[str], (b"tag2",))),
+                    ),
                     (CODE[str], (b"description",)),
                 ),
             ),

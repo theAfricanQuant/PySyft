@@ -46,9 +46,7 @@ class GRUCell(nn.Module):
         inputgate = F.sigmoid(i_z + h_z)
         newgate = F.tanh(i_n + (resetgate * h_n))
 
-        hy = newgate + inputgate * (h - newgate)
-
-        return hy
+        return newgate + inputgate * (h - newgate)
 
 
 class GRU(nn.Module):

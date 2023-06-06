@@ -147,7 +147,7 @@ class WebsocketServerWorker(VirtualWorker, FederatedClient):
     def start(self):
         """Start the server"""
         # Secure behavior: adds a secure layer applying cryptography and authentication
-        if not (self.cert_path is None) and not (self.key_path is None):
+        if self.cert_path is not None and self.key_path is not None:
             ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
             ssl_context.load_cert_chain(self.cert_path, self.key_path)
             start_server = websockets.serve(

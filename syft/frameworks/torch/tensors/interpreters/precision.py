@@ -117,9 +117,7 @@ class FixedPrecisionTensor(AbstractTensor):
         gate = value.native_gt(torch_max_value / 2).long()
         neg_nums = (value - self.field) * gate
         pos_nums = value * (1 - gate)
-        result = (neg_nums + pos_nums).float() / (self.base ** self.precision_fractional)
-
-        return result
+        return (neg_nums + pos_nums).float() / (self.base ** self.precision_fractional)
 
     def truncate(self, precision_fractional, check_sign=True):
         truncation = self.base ** precision_fractional
@@ -129,14 +127,14 @@ class FixedPrecisionTensor(AbstractTensor):
         # at 97 (equivalent to -3), not 7
         if isinstance(self.child, AdditiveSharingTensor) or not check_sign:  # Handle FPT>(wrap)>AST
             self.child = self.child / truncation
-            return self
         else:
             torch_max_value = torch.tensor(self.field).long()
             gate = self.child.native_gt(torch_max_value / 2).long()
             neg_nums = (self.child - self.field) / truncation + self.field
             pos_nums = self.child / truncation
             self.child = neg_nums * gate + pos_nums * (1 - gate)
-            return self
+
+        return self
 
     @overloaded.method
     def add(self, _self, other):
@@ -223,9 +221,7 @@ class FixedPrecisionTensor(AbstractTensor):
     @overloaded.method
     def t(self, _self, *args, **kwargs):
         """Transpose a tensor. Hooked is handled by the decorator"""
-        response = getattr(_self, "t")(*args, **kwargs)
-
-        return response
+        return getattr(_self, "t")(*args, **kwargs)
 
     def mul_and_div(self, other, cmd):
         """
@@ -447,9 +443,7 @@ class FixedPrecisionTensor(AbstractTensor):
         )
 
         response %= self.field  # Wrap around the field
-        response = response.truncate(other.precision_fractional)
-
-        return response
+        return response.truncate(other.precision_fractional)
 
     __matmul__ = matmul
     mm = matmul
@@ -547,11 +541,9 @@ class FixedPrecisionTensor(AbstractTensor):
         y = self / 31 + 1.59 - 20 * (-2 * self - 1.4).exp(iterations=exp_iterations)
 
         # 6th order Householder iterations
-        for i in range(iterations):
+        for _ in range(iterations):
             h = [1 - self * (-y).refresh().exp(iterations=exp_iterations)]
-            for i in range(1, 5):
-                h.append(h[-1] * h[0])
-
+            h.extend(h[-1] * h[0] for _ in range(1, 5))
             y -= h[0] * (1 + h[0] / 2 + h[1] / 3 + h[2] / 4 + h[3] / 5 + h[4] / 6)
 
         return y

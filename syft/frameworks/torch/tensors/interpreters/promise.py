@@ -102,7 +102,7 @@ class PromiseTensor(AbstractTensor, Promise):
         tags = sy.serde.msgpack.serde._detail(worker, tags)
         description = sy.serde.msgpack.serde._detail(worker, description)
 
-        tensor = PromiseTensor(
+        return PromiseTensor(
             owner=worker,
             id=id,
             shape=shape,
@@ -111,8 +111,6 @@ class PromiseTensor(AbstractTensor, Promise):
             tags=tags,
             description=description,
         )
-
-        return tensor
 
 
 ### Register the tensor with hook_args.py ###

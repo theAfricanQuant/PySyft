@@ -45,10 +45,7 @@ class Message:
         might be. Some message types can be more efficient by storing their contents more explicitly (see
         Operation). They can override this property to return a tuple view on their other properties.
         """
-        if hasattr(self, "_contents"):
-            return self._contents
-        else:
-            return None
+        return self._contents if hasattr(self, "_contents") else None
 
     def _simplify(self):
         return (self.contents,)
@@ -261,43 +258,40 @@ class Operation(Message):
         )
         args = Operation._unbufferize_args(worker, protobuf_obj.operation.args)
 
-        kwargs = {}
-        for key in protobuf_obj.operation.kwargs:
-            kwargs[key] = Operation._unbufferize_arg(worker, protobuf_obj.operation.kwargs[key])
-
+        kwargs = {
+            key: Operation._unbufferize_arg(
+                worker, protobuf_obj.operation.kwargs[key]
+            )
+            for key in protobuf_obj.operation.kwargs
+        }
         return_ids = [
             sy.serde.protobuf.proto.get_protobuf_id(pb_id)
             for pb_id in protobuf_obj.operation.return_ids
         ]
 
-        operation_msg = Operation(command, owner, tuple(args), kwargs, tuple(return_ids))
-
-        return operation_msg
+        return Operation(command, owner, tuple(args), kwargs, tuple(return_ids))
 
     @staticmethod
     def _bufferize_args(worker: AbstractWorker, args: list) -> list:
-        protobuf_args = []
-        for arg in args:
-            protobuf_args.append(Operation._bufferize_arg(worker, arg))
-        return protobuf_args
+        return [Operation._bufferize_arg(worker, arg) for arg in args]
 
     @staticmethod
     def _bufferize_arg(worker: AbstractWorker, arg: object) -> ArgPB:
         protobuf_arg = ArgPB()
         try:
-            setattr(protobuf_arg, "arg_" + type(arg).__name__, arg)
+            setattr(protobuf_arg, f"arg_{type(arg).__name__}", arg)
         except:
-            getattr(protobuf_arg, "arg_" + type(arg).__name__).CopyFrom(
+            getattr(protobuf_arg, f"arg_{type(arg).__name__}").CopyFrom(
                 sy.serde.protobuf.serde._bufferize(worker, arg)
             )
         return protobuf_arg
 
     @staticmethod
     def _unbufferize_args(worker: AbstractWorker, protobuf_args: list) -> list:
-        args = []
-        for protobuf_arg in protobuf_args:
-            args.append(Operation._unbufferize_arg(worker, protobuf_arg))
-        return args
+        return [
+            Operation._unbufferize_arg(worker, protobuf_arg)
+            for protobuf_arg in protobuf_args
+        ]
 
     @staticmethod
     def _unbufferize_arg(worker: AbstractWorker, protobuf_arg: ArgPB) -> object:
@@ -361,9 +355,7 @@ class ObjectMessage(Message):
     def unbufferize(worker: AbstractWorker, protobuf_obj: "ObjectMessagePB") -> "ObjectMessage":
         protobuf_contents = protobuf_obj.tensor
         contents = sy.serde.protobuf.serde._unbufferize(worker, protobuf_contents)
-        object_msg = ObjectMessage(contents)
-
-        return object_msg
+        return ObjectMessage(contents)
 
 
 class ObjectRequestMessage(Message):

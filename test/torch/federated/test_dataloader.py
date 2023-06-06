@@ -13,17 +13,11 @@ def test_federated_dataloader(workers):
     fed_dataset = sy.FederatedDataset(datasets)
 
     fdataloader = sy.FederatedDataLoader(fed_dataset, batch_size=2)
-    counter = 0
-    for batch_idx, (data, target) in enumerate(fdataloader):
-        counter += 1
-
+    counter = sum(1 for data, target in fdataloader)
     assert counter == len(fdataloader), f"{counter} == {len(fdataloader)}"
 
     fdataloader = sy.FederatedDataLoader(fed_dataset, batch_size=2, drop_last=True)
-    counter = 0
-    for batch_idx, (data, target) in enumerate(fdataloader):
-        counter += 1
-
+    counter = sum(1 for data, target in fdataloader)
     assert counter == len(fdataloader), f"{counter} == {len(fdataloader)}"
 
 
@@ -39,7 +33,7 @@ def test_federated_dataloader_shuffle(workers):
     fdataloader = sy.FederatedDataLoader(fed_dataset, batch_size=2, shuffle=True)
     for epoch in range(3):
         counter = 0
-        for batch_idx, (data, target) in enumerate(fdataloader):
+        for data, target in fdataloader:
             if counter < 1:  # one batch for bob, two batches for alice (batch_size == 2)
                 assert (
                     data.location.id == "bob"
@@ -123,7 +117,7 @@ def test_federated_dataloader_iter_per_worker(workers):
     assert (
         fdataloader.num_iterators == nr_workers
     ), "num_iterators should be equal to number or workers"
-    for batch_idx, batches in enumerate(fdataloader):
+    for batches in fdataloader:
         assert len(batches.keys()) == nr_workers, "return a batch for each worker"
 
 
@@ -135,4 +129,4 @@ def test_federated_dataloader_one_worker(workers):
     fed_dataset = sy.FederatedDataset(datasets)
     num_iterators = len(datasets)
     fdataloader = sy.FederatedDataLoader(fed_dataset, batch_size=2, shuffle=True)
-    assert fdataloader.num_iterators == 1, f"{fdataloader.num_iterators} == {1}"
+    assert fdataloader.num_iterators == 1, f"{fdataloader.num_iterators} == 1"

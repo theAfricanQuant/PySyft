@@ -105,7 +105,7 @@ class BaseWorker(AbstractWorker, ObjectStorage):
         self.log_msgs = log_msgs
         self.verbose = verbose
         self.auto_add = auto_add
-        self.msg_history = list()
+        self.msg_history = []
 
         # For performance, we cache all possible message types
         self._message_router = {
@@ -276,10 +276,7 @@ class BaseWorker(AbstractWorker, ObjectStorage):
         # Step 2: send the message and wait for a response
         bin_response = self._send_msg(bin_message, location)
 
-        # Step 3: deserialize the response
-        response = sy.serde.deserialize(bin_response, worker=self)
-
-        return response
+        return sy.serde.deserialize(bin_response, worker=self)
 
     def recv_msg(self, bin_message: bin) -> bin:
         """Implements the logic to receive messages.
@@ -309,10 +306,7 @@ class BaseWorker(AbstractWorker, ObjectStorage):
         # Step 1: route message to appropriate function
         response = self._message_router[type(msg)](msg.contents)
 
-        # Step 2: Serialize the message to simple python objects
-        bin_response = sy.serde.serialize(response, worker=self)
-
-        return bin_response
+        return sy.serde.serialize(response, worker=self)
 
         # SECTION:recv_msg() uses self._message_router to route to these methods
 
@@ -500,7 +494,7 @@ class BaseWorker(AbstractWorker, ObjectStorage):
             A list of PointerTensors or a single PointerTensor if just one response is expected.
         """
         if return_ids is None:
-            return_ids = tuple([sy.ID_PROVIDER.pop()])
+            return_ids = (sy.ID_PROVIDER.pop(), )
 
         cmd_name = message[0]
         cmd_owner = message[1]
@@ -548,10 +542,7 @@ class BaseWorker(AbstractWorker, ObjectStorage):
         if hasattr(obj, "child") and hasattr(obj.child, "set_garbage_collect_data"):
             obj.child.set_garbage_collect_data(value=False)
 
-        if hasattr(obj, "private") and obj.private:
-            return None
-
-        return obj
+        return None if hasattr(obj, "private") and obj.private else obj
 
     def respond_to_obj_req(self, request_msg: tuple):
         """Returns the deregistered object from registry.
@@ -563,9 +554,8 @@ class BaseWorker(AbstractWorker, ObjectStorage):
         obj = self.get_obj(obj_id)
         if hasattr(obj, "allow") and not obj.allow(user):
             raise GetNotPermittedError()
-        else:
-            self.de_register_obj(obj)
-            return obj
+        self.de_register_obj(obj)
+        return obj
 
     def register_obj(self, obj: object, obj_id: Union[str, int] = None):
         """Registers the specified object with the current worker node.
@@ -620,8 +610,7 @@ class BaseWorker(AbstractWorker, ObjectStorage):
         Returns:
             A torch Tensor or Variable object.
         """
-        obj = self.send_msg(ObjectRequestMessage((obj_id, user, reason)), location)
-        return obj
+        return self.send_msg(ObjectRequestMessage((obj_id, user, reason)), location)
 
     # SECTION: Manage the workers network
 
@@ -671,7 +660,7 @@ class BaseWorker(AbstractWorker, ObjectStorage):
         if isinstance(id_or_worker, bytes):
             id_or_worker = str(id_or_worker, "utf-8")
 
-        if isinstance(id_or_worker, str) or isinstance(id_or_worker, int):
+        if isinstance(id_or_worker, (str, int)):
             return self._get_worker_based_on_id(id_or_worker, fail_hard=fail_hard)
         else:
             return self._get_worker(id_or_worker)
@@ -775,8 +764,8 @@ class BaseWorker(AbstractWorker, ObjectStorage):
 
         out = "<"
         out += str(type(self)).split("'")[1].split(".")[-1]
-        out += " id:" + str(self.id)
-        out += " #objects:" + str(len(self._objects))
+        out += f" id:{str(self.id)}"
+        out += f" #objects:{len(self._objects)}"
         out += ">"
         return out
 
@@ -854,7 +843,7 @@ class BaseWorker(AbstractWorker, ObjectStorage):
 
         return plan
 
-    def _fetch_plan_remote(self, plan_id: Union[str, int], copy: bool) -> "Plan":  # noqa: F821
+    def _fetch_plan_remote(self, plan_id: Union[str, int], copy: bool) -> "Plan":    # noqa: F821
         """Fetches a copy of a the plan with the given `plan_id` from the worker registry.
 
         This method is executed for remote execution.
@@ -868,16 +857,12 @@ class BaseWorker(AbstractWorker, ObjectStorage):
         if plan_id in self._objects:
             candidate = self._objects[plan_id]
             if isinstance(candidate, sy.Plan):
-                if copy:
-                    return candidate.copy()
-                else:
-                    return candidate
-
+                return candidate.copy() if copy else candidate
         return None
 
     def fetch_protocol(
         self, protocol_id: Union[str, int], location: "BaseWorker", copy: bool = False
-    ) -> "Plan":  # noqa: F821
+    ) -> "Plan":    # noqa: F821
         """Fetch a copy of a the protocol with the given `protocol_id` from the worker registry.
 
         This method is executed for local execution.
@@ -889,9 +874,7 @@ class BaseWorker(AbstractWorker, ObjectStorage):
             A protocol if a protocol with the given `protocol_id` exists. Returns None otherwise.
         """
         message = PlanCommandMessage("fetch_protocol", (protocol_id, copy))
-        protocol = self.send_msg(message, location=location)
-
-        return protocol
+        return self.send_msg(message, location=location)
 
     def _fetch_protocol_remote(
         self, protocol_id: Union[str, int], copy: bool
@@ -923,7 +906,7 @@ class BaseWorker(AbstractWorker, ObjectStorage):
         if isinstance(query, (str, int)):
             query = [query]
 
-        results = list()
+        results = []
         for key, obj in self._objects.items():
             found_something = True
             for query_item in query:
@@ -960,9 +943,7 @@ class BaseWorker(AbstractWorker, ObjectStorage):
 
     def request_search(self, query: List[str], location: "BaseWorker"):
 
-        result = self.send_msg(SearchMessage(query), location=location)
-
-        return result
+        return self.send_msg(SearchMessage(query), location=location)
 
     def _get_msg(self, index):
         """Returns a decrypted message from msg_history. Mostly useful for testing.
@@ -1028,11 +1009,7 @@ class BaseWorker(AbstractWorker, ObjectStorage):
 
         frameworks = set()
         for worker in workers:
-            if worker.framework is not None:
-                framework = worker.framework.__name__
-            else:
-                framework = "None"
-
+            framework = "None" if worker.framework is None else worker.framework.__name__
             frameworks.add(framework)
 
         if len(frameworks) == 1 and frameworks == {"torch"}:
@@ -1057,9 +1034,7 @@ class BaseWorker(AbstractWorker, ObjectStorage):
         """
         worker_id = sy.serde.msgpack.serde._detail(worker, worker_tuple[0])
 
-        referenced_worker = worker.get_worker(worker_id)
-
-        return referenced_worker
+        return worker.get_worker(worker_id)
 
     @staticmethod
     def force_simplify(_worker: AbstractWorker, worker: AbstractWorker) -> tuple:

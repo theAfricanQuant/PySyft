@@ -133,7 +133,7 @@ class Plan(AbstractObject, ObjectStorage):
         self._output_shape = None
 
         # The plan has not been sent
-        self.pointers = dict()
+        self.pointers = {}
 
         if blueprint is not None:
             self.forward = blueprint
@@ -148,7 +148,7 @@ class Plan(AbstractObject, ObjectStorage):
         mapped_shapes = []
         for shape in args_shape:
             if list(filter(lambda x: x < -1, shape)):
-                raise ValueError("Invalid shape {}".format(shape))
+                raise ValueError(f"Invalid shape {shape}")
             mapped_shapes.append(tuple(map(lambda y: 1 if y == -1 else y, shape)))
 
         return [sy.framework.hook.create_zeros(shape) for shape in mapped_shapes]
@@ -373,9 +373,7 @@ class Plan(AbstractObject, ObjectStorage):
         self.execute_commands()
         responses = [self.owner.get_obj(result_id) for result_id in result_ids]
 
-        if len(responses) == 1:
-            return responses[0]
-        return responses
+        return responses[0] if len(responses) == 1 else responses
 
     def has_args_fulfilled(self):
         """ Check if all the arguments of the plan are ready or not.
@@ -390,7 +388,10 @@ class Plan(AbstractObject, ObjectStorage):
         return True
 
     def has_promises_args(self, args):
-        return any([hasattr(arg, "child") and isinstance(arg.child, PromiseTensor) for arg in args])
+        return any(
+            hasattr(arg, "child") and isinstance(arg.child, PromiseTensor)
+            for arg in args
+        )
 
     def setup_plan_with_promises(self, *args):
         """ Slightly modifies a plan so that it can work with promises.
@@ -503,14 +504,14 @@ class Plan(AbstractObject, ObjectStorage):
         """Returns the string representation of Plan."""
         out = "<"
         out += str(type(self)).split("'")[1].split(".")[-1]
-        out += " " + str(self.name)
-        out += " id:" + str(self.id)
-        out += " owner:" + str(self.owner.id)
+        out += f" {str(self.name)}"
+        out += f" id:{str(self.id)}"
+        out += f" owner:{str(self.owner.id)}"
 
         if self.tags is not None and len(self.tags):
             out += " Tags:"
             for tag in self.tags:
-                out += " " + str(tag)
+                out += f" {str(tag)}"
 
         if self.is_built:
             out += " built"

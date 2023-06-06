@@ -29,7 +29,6 @@ def test_train_config_with_jit_script_module(hook, workers):  # pragma: no cover
     def loss_fn(real, pred):
         return ((real.float() - pred.float()) ** 2).mean()
 
-    # Model
     class Net(torch.jit.ScriptModule):
         def __init__(self):
             super(Net, self).__init__()
@@ -60,7 +59,7 @@ def test_train_config_with_jit_script_module(hook, workers):  # pragma: no cover
         loss = alice.fit(dataset="vectors")
         if PRINT_IN_UNITTESTS:  # pragma: no cover:
             print("-" * 50)
-            print("Iteration %s: alice's loss: %s" % (epoch, loss))
+            print(f"Iteration {epoch}: alice's loss: {loss}")
 
     if PRINT_IN_UNITTESTS:
         print(alice)
@@ -127,7 +126,7 @@ def test_train_config_with_jit_trace(hook, workers):  # pragma: no cover
         loss = alice.fit(dataset_key="gaussian_mixture")
         if PRINT_IN_UNITTESTS:  # pragma: no cover:
             print("-" * 50)
-            print("Iteration %s: alice's loss: %s" % (epoch, loss))
+            print(f"Iteration {epoch}: alice's loss: {loss}")
 
     new_model = train_config.model_ptr.get()
     pred = new_model.obj(data)
@@ -152,7 +151,7 @@ def test_train_config_with_jit_trace_send_twice_with_fit(hook, workers):  # prag
         loss = alice.fit(dataset_key=dataset_key)
         if PRINT_IN_UNITTESTS:  # pragma: no cover:
             print("-" * 50)
-            print("TrainConfig 0, iteration %s: alice's loss: %s" % (epoch, loss))
+            print(f"TrainConfig 0, iteration {epoch}: alice's loss: {loss}")
 
     new_model = train_config_0.model_ptr.get()
     pred = new_model.obj(data)
@@ -168,14 +167,14 @@ def test_train_config_with_jit_trace_send_twice_with_fit(hook, workers):  # prag
 
         if PRINT_IN_UNITTESTS:  # pragma: no cover:
             print("-" * 50)
-            print("TrainConfig 1, iteration %s: alice's loss: %s" % (epoch, loss))
+            print(f"TrainConfig 1, iteration {epoch}: alice's loss: {loss}")
 
     new_model = train_config.model_ptr.get()
     pred = new_model.obj(data)
     loss_after = loss_fn(pred=pred, target=target)
     if PRINT_IN_UNITTESTS:  # pragma: no cover:
-        print("Loss after training with TrainConfig 0: {}".format(loss_after_0))
-        print("Loss after training with TrainConfig 1:   {}".format(loss_after))
+        print(f"Loss after training with TrainConfig 0: {loss_after_0}")
+        print(f"Loss after training with TrainConfig 1:   {loss_after}")
 
     assert loss_after < loss_before
 
@@ -330,7 +329,7 @@ async def test_train_config_with_jit_trace_async(hook, start_proc):  # pragma: n
         loss = await remote_proxy.async_fit(dataset_key=dataset_key)
         if PRINT_IN_UNITTESTS:  # pragma: no cover
             print("-" * 50)
-            print("Iteration %s: alice's loss: %s" % (epoch, loss))
+            print(f"Iteration {epoch}: alice's loss: {loss}")
 
     new_model = train_config.model_ptr.get()
 
@@ -395,7 +394,7 @@ def test_train_config_with_jit_trace_sync(hook, start_remote_worker):  # pragma:
         loss = remote_proxy.fit(dataset_key=dataset_key)
         if PRINT_IN_UNITTESTS:  # pragma: no cover
             print("-" * 50)
-            print("Iteration %s: alice's loss: %s" % (epoch, loss))
+            print(f"Iteration {epoch}: alice's loss: {loss}")
 
     new_model = train_config.model_ptr.get()
 

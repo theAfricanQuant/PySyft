@@ -71,7 +71,7 @@ class PrivateTensor(AbstractTensor):
         if isinstance(users, tuple):
             self.allowed_users += users
         else:
-            self.allowed_users = self.allowed_users + tuple([users])
+            self.allowed_users = self.allowed_users + (users, )
 
         return self
 

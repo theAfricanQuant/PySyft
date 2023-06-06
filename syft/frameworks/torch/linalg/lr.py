@@ -213,7 +213,7 @@ class EncryptedLinearRegression:
                 )
 
             # Check if both are in the same worker
-            if not x.child.location == y.child.location:
+            if x.child.location != y.child.location:
                 raise RuntimeError("Some pairs (X, y) are not located in the same worker")
 
             # Check if they have the same size
@@ -238,7 +238,7 @@ class EncryptedLinearRegression:
         Adds a column-vector of 1's at the beginning of the tensors X_ptrs
         """
         X_ptrs_new = []
-        for i, x in enumerate(X_ptrs):
+        for x in X_ptrs:
             ones = torch.ones_like(x[:, :1])
             x = torch.cat((ones, x), 1)
             X_ptrs_new.append(x)
@@ -429,7 +429,10 @@ class DASH:
                 )
 
             # Check if both are in the same worker
-            if not (x.child.location == c.child.location and x.child.location == y.child.location):
+            if (
+                x.child.location != c.child.location
+                or x.child.location != y.child.location
+            ):
                 raise RuntimeError("Some tuples (X, C, y) are not located in the same worker")
 
             # Check if they have the same size
