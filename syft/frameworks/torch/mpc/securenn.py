@@ -25,7 +25,7 @@ def decompose(tensor):
     powers = torch.arange(n_bits)
     if hasattr(tensor, "child") and isinstance(tensor.child, dict):
         powers = powers.send(*list(tensor.child.keys()), **no_wrap)
-    for i in range(len(tensor.shape)):
+    for _ in range(len(tensor.shape)):
         powers = powers.unsqueeze(0)
     tensor = tensor.unsqueeze(-1)
     moduli = 2 ** powers
@@ -52,11 +52,8 @@ def _random_common_bit(*workers):
     """
     pointer = torch.LongTensor([1]).send(workers[0], **no_wrap).random_(2)
     pointers = [pointer]
-    for worker in workers[1:]:
-        pointers.append(pointer.copy().move(worker))
-    bit = sy.MultiPointerTensor(children=pointers)
-
-    return bit
+    pointers.extend(pointer.copy().move(worker) for worker in workers[1:])
+    return sy.MultiPointerTensor(children=pointers)
 
 
 def _random_common_value(max_value, *workers):
@@ -66,11 +63,8 @@ def _random_common_value(max_value, *workers):
     """
     pointer = torch.LongTensor([1]).send(workers[0], **no_wrap).random_(max_value)
     pointers = [pointer]
-    for worker in workers[1:]:
-        pointers.append(pointer.copy().move(worker))
-    common_value = sy.MultiPointerTensor(children=pointers)
-
-    return common_value
+    pointers.extend(pointer.copy().move(worker) for worker in workers[1:])
+    return sy.MultiPointerTensor(children=pointers)
 
 
 def _shares_of_zero(size, field, crypto_provider, *workers):
@@ -115,10 +109,7 @@ def select_share(alpha_sh, x_sh, y_sh):
     # 2)
     c_sh = alpha_sh * w_sh
 
-    # 3)
-    z_sh = x_sh + c_sh + u_sh
-
-    return z_sh
+    return x_sh + c_sh + u_sh
 
 
 def private_compare(x_bit_sh, r, beta):
@@ -213,9 +204,7 @@ def private_compare(x_bit_sh, r, beta):
     d_ptr = remote_mask.remote_get()
     beta_prime = (d_ptr == 0).sum(-1)
 
-    # Get result back
-    res = beta_prime.get()
-    return res
+    return beta_prime.get()
 
 
 def msb(a_sh):
@@ -283,10 +272,7 @@ def msb(a_sh):
     # 10)
     a = gamma + delta - (theta * 2) + u
 
-    if len(input_shape):
-        return a.view(*list(input_shape))
-    else:
-        return a
+    return a.view(*list(input_shape)) if len(input_shape) else a
 
 
 def share_convert(a_sh):
@@ -365,9 +351,7 @@ def share_convert(a_sh):
     # 10)
     theta_sh = beta - (1 - j) * (alpha + 1) + delta_sh + eta_sh
 
-    # 11)
-    y_sh = -theta_sh + a_sh + u_sh
-    return y_sh
+    return -theta_sh + a_sh + u_sh
 
 
 def relu_deriv(a_sh):
@@ -482,10 +466,7 @@ def division(x_sh, y_sh, bit_len_max=Q_BITS // 2):
     # 9)
     q = sum(ks) + s_sh
 
-    if len(x_shape):
-        return q.view(*x_shape)
-    else:
-        return q
+    return q.view(*x_shape) if len(x_shape) else q
 
 
 def maxpool(x_sh):
@@ -633,5 +614,6 @@ def maxpool2d(a_sh, kernel_size: int = 1, stride: int = 1, padding: int = 0):
                     )
                     res.append(m.wrap())
 
-    res = torch.stack(res).reshape(batch_size, nb_channels, nb_rows_out, nb_cols_out)
-    return res
+    return torch.stack(res).reshape(
+        batch_size, nb_channels, nb_rows_out, nb_cols_out
+    )

@@ -14,12 +14,12 @@ def test_section_1_differential_privacy():
     db = torch.rand(num_entries) > 0.5
 
     def get_parallel_db(db, remove_index):
-        return torch.cat((db[0:remove_index], db[remove_index + 1 :]))
+        return torch.cat((db[:remove_index], db[remove_index + 1 :]))
 
     get_parallel_db(db, 52352)
 
     def get_parallel_dbs(db):
-        parallel_dbs = list()
+        parallel_dbs = []
 
         for i in range(len(db)):
             pdb = get_parallel_db(db, i)
@@ -121,23 +121,23 @@ def test_section_1_differential_privacy():
 
     db, pdbs = create_db_and_parallels(10)
     private_result, true_result = query(db)
-    print("With Noise:" + str(private_result))
-    print("Without Noise:" + str(true_result))
+    print(f"With Noise:{str(private_result)}")
+    print(f"Without Noise:{str(true_result)}")
 
     db, pdbs = create_db_and_parallels(100)
     private_result, true_result = query(db)
-    print("With Noise:" + str(private_result))
-    print("Without Noise:" + str(true_result))
+    print(f"With Noise:{str(private_result)}")
+    print(f"Without Noise:{str(true_result)}")
 
     db, pdbs = create_db_and_parallels(1000)
     private_result, true_result = query(db)
-    print("With Noise:" + str(private_result))
-    print("Without Noise:" + str(true_result))
+    print(f"With Noise:{str(private_result)}")
+    print(f"Without Noise:{str(true_result)}")
 
     db, pdbs = create_db_and_parallels(10000)
     private_result, true_result = query(db)
-    print("With Noise:" + str(private_result))
-    print("Without Noise:" + str(true_result))
+    print(f"With Noise:{str(private_result)}")
+    print(f"Without Noise:{str(true_result)}")
 
     def query(db, noise=0.2):
 
@@ -156,28 +156,28 @@ def test_section_1_differential_privacy():
 
     db, pdbs = create_db_and_parallels(100)
     private_result, true_result = query(db, noise=0.1)
-    print("With Noise:" + str(private_result))
-    print("Without Noise:" + str(true_result))
+    print(f"With Noise:{str(private_result)}")
+    print(f"Without Noise:{str(true_result)}")
 
     db, pdbs = create_db_and_parallels(100)
     private_result, true_result = query(db, noise=0.2)
-    print("With Noise:" + str(private_result))
-    print("Without Noise:" + str(true_result))
+    print(f"With Noise:{str(private_result)}")
+    print(f"Without Noise:{str(true_result)}")
 
     db, pdbs = create_db_and_parallels(100)
     private_result, true_result = query(db, noise=0.4)
-    print("With Noise:" + str(private_result))
-    print("Without Noise:" + str(true_result))
+    print(f"With Noise:{str(private_result)}")
+    print(f"Without Noise:{str(true_result)}")
 
     db, pdbs = create_db_and_parallels(100)
     private_result, true_result = query(db, noise=0.8)
-    print("With Noise:" + str(private_result))
-    print("Without Noise:" + str(true_result))
+    print(f"With Noise:{str(private_result)}")
+    print(f"Without Noise:{str(true_result)}")
 
     db, pdbs = create_db_and_parallels(10000)
     private_result, true_result = query(db, noise=0.8)
-    print("With Noise:" + str(private_result))
-    print("Without Noise:" + str(true_result))
+    print(f"With Noise:{str(private_result)}")
+    print(f"Without Noise:{str(true_result)}")
 
     db, pdbs = create_db_and_parallels(100)
 
@@ -222,7 +222,7 @@ def test_section_1_differential_privacy():
         (np.random.rand(num_teachers, num_examples) * num_labels).astype(int).transpose(1, 0)
     )  # fake predictions
 
-    new_labels = list()
+    new_labels = []
     for an_image in preds:
 
         label_counts = np.bincount(an_image, minlength=num_labels)
@@ -463,8 +463,8 @@ def test_section_2_federated_learning(hook):
 
     train()
 
-    data_bob = data[0:2].send(bob)
-    target_bob = target[0:2].send(bob)
+    data_bob = data[:2].send(bob)
+    target_bob = target[:2].send(bob)
 
     data_alice = data[2:4].send(alice)
     target_alice = target[2:4].send(alice)
@@ -616,8 +616,8 @@ def test_section_3_securing_fl(hook):
 
     # get pointers to training data on each worker by
     # sending some training data to bob and alice
-    bobs_data = data[0:2].send(bob)
-    bobs_target = target[0:2].send(bob)
+    bobs_data = data[:2].send(bob)
+    bobs_target = target[:2].send(bob)
 
     alices_data = data[2:].send(alice)
     alices_target = target[2:].send(alice)
@@ -697,7 +697,7 @@ def test_section_3_securing_fl(hook):
             model.weight.set_(((alices_model.weight.data + bobs_model.weight.data) / 2).get())
             model.bias.set_(((alices_model.bias.data + bobs_model.bias.data) / 2).get())
 
-        print("Bob:" + str(bobs_loss) + " Alice:" + str(alices_loss))
+        print(f"Bob:{str(bobs_loss)} Alice:{str(alices_loss)}")
 
     preds = model(data)
     loss = ((preds - target) ** 2).sum()
@@ -753,7 +753,7 @@ def test_section_3_securing_fl(hook):
 
     def encrypt(x, n_share=3):
 
-        shares = list()
+        shares = []
 
         for i in range(n_share - 1):
             shares.append(random.randint(0, Q))
@@ -771,7 +771,7 @@ def test_section_3_securing_fl(hook):
     decrypt(shares)
 
     def add(a, b):
-        c = list()
+        c = []
         for i in range(len(a)):
             c.append((a[i] + b[i]) % Q)
         return tuple(c)

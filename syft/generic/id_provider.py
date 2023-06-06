@@ -18,7 +18,7 @@ class IdProvider:
     """
 
     def __init__(self, given_ids=None):
-        self.given_ids = given_ids if given_ids is not None else list()
+        self.given_ids = given_ids if given_ids is not None else []
         self.generated = set()
         self.record_ids = False
         self.recorded_ids = []
@@ -57,7 +57,7 @@ class IdProvider:
         if check_ids:
             intersect = self.generated.intersection(set(given_ids))
             if len(intersect) > 0:
-                message = "Provided IDs {} are contained in already generated IDs".format(intersect)
+                message = f"Provided IDs {intersect} are contained in already generated IDs"
                 raise exceptions.IdNotUniqueError(message)
 
         self.given_ids += given_ids
@@ -66,7 +66,7 @@ class IdProvider:
         """Starts the recording in form of a list of the generated ids.
         """
         self.record_ids = True
-        self.recorded_ids = list()
+        self.recorded_ids = []
 
     def get_recorded_ids(self, continue_recording=False):
         """Returns the generated ids since the last call to start_recording_ids.
@@ -80,5 +80,5 @@ class IdProvider:
         ret_val = self.recorded_ids
         if not continue_recording:
             self.record_ids = False
-            self.recorded_ids = list()
+            self.recorded_ids = []
         return ret_val

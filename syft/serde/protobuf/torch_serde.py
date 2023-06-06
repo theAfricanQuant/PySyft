@@ -111,7 +111,7 @@ def protobuf_tensor_serializer(worker: AbstractWorker, tensor: torch.Tensor) -> 
 
     protobuf_tensor.dtype = dtype
     protobuf_tensor.shape.dims.extend(tensor.size())
-    getattr(protobuf_tensor, "contents_" + dtype).extend(data)
+    getattr(protobuf_tensor, f"contents_{dtype}").extend(data)
 
     return protobuf_tensor
 
@@ -121,7 +121,7 @@ def protobuf_tensor_deserializer(
 ) -> torch.Tensor:
     """"Strategy to deserialize a binary input using Protobuf"""
     size = tuple(protobuf_tensor.shape.dims)
-    data = getattr(protobuf_tensor, "contents_" + protobuf_tensor.dtype)
+    data = getattr(protobuf_tensor, f"contents_{protobuf_tensor.dtype}")
 
     if protobuf_tensor.is_quantized:
         # Drop the 'q' from the beginning of the quantized dtype to get the int type
@@ -155,18 +155,13 @@ def _bufferize_torch_tensor(worker: AbstractWorker, tensor: torch.Tensor) -> bin
     """
     serialized_tensor = _serialize_tensor(worker, tensor)
 
-    if tensor.grad is not None:
-        if hasattr(tensor, "child"):
-            if isinstance(tensor.child, PointerTensor):
-                grad_chain = None
-            else:
-                grad_chain = _bufferize_torch_tensor(worker, tensor.grad)
-        else:
-            grad_chain = _bufferize_torch_tensor(worker, tensor.grad)
-
-    else:
+    if tensor.grad is None:
         grad_chain = None
 
+    elif hasattr(tensor, "child") and isinstance(tensor.child, PointerTensor):
+        grad_chain = None
+    else:
+        grad_chain = _bufferize_torch_tensor(worker, tensor.grad)
     chain = None
     if hasattr(tensor, "child"):
         chain = syft.serde.protobuf.serde._bufferize(worker, tensor.child)
@@ -284,8 +279,7 @@ def _unbufferize_script_module(
     worker: AbstractWorker, protobuf_script: ScriptModulePB
 ) -> torch.jit.ScriptModule:
     script_module_stream = io.BytesIO(protobuf_script.obj)
-    loaded_module = torch.jit.load(script_module_stream)
-    return loaded_module
+    return torch.jit.load(script_module_stream)
 
 
 def _bufferize_c_function(worker: AbstractWorker, script_module: torch._C.Function) -> CFunctionPB:
@@ -298,8 +292,7 @@ def _unbufferize_c_function(
     worker: AbstractWorker, protobuf_script: CFunctionPB
 ) -> torch._C.Function:
     script_module_stream = io.BytesIO(protobuf_script.obj)
-    loaded_module = torch.jit.load(script_module_stream)
-    return loaded_module
+    return torch.jit.load(script_module_stream)
 
 
 def _bufferize_traced_module(
@@ -314,8 +307,7 @@ def _unbufferize_traced_module(
     worker: AbstractWorker, protobuf_script: TracedModulePB
 ) -> torch.jit.TopLevelTracedModule:
     script_module_stream = io.BytesIO(protobuf_script.obj)
-    loaded_module = torch.jit.load(script_module_stream)
-    return loaded_module
+    return torch.jit.load(script_module_stream)
 
 
 def _bufferize_torch_size(worker: AbstractWorker, size: torch.Size) -> SizePB:

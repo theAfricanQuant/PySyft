@@ -124,10 +124,7 @@ class PointerTensor(ObjectPointer, AbstractTensor):
         if not hasattr(self, "_grad"):
             self._grad = self.attr("grad")
 
-        if self._grad.child.is_none():
-            return None
-
-        return self._grad
+        return None if self._grad.child.is_none() else self._grad
 
     @grad.setter
     def grad(self, new_grad):
@@ -350,9 +347,7 @@ class PointerTensor(ObjectPointer, AbstractTensor):
         # Send the command
         command = ("fix_prec", self, args, kwargs)
 
-        response = self.owner.send_command(self.location, command)
-
-        return response
+        return self.owner.send_command(self.location, command)
 
     fix_precision = fix_prec
 
@@ -367,9 +362,7 @@ class PointerTensor(ObjectPointer, AbstractTensor):
         # Send the command
         command = ("float_prec", self, args, kwargs)
 
-        response = self.owner.send_command(self.location, command)
-
-        return response
+        return self.owner.send_command(self.location, command)
 
     float_precision = float_prec
 
@@ -384,9 +377,7 @@ class PointerTensor(ObjectPointer, AbstractTensor):
         # Send the command
         command = ("share", self, args, kwargs)
 
-        response = self.owner.send_command(self.location, command)
-
-        return response
+        return self.owner.send_command(self.location, command)
 
     def keep(self, *args, **kwargs):
         """
@@ -399,9 +390,7 @@ class PointerTensor(ObjectPointer, AbstractTensor):
         # Send the command
         command = ("keep", self, args, kwargs)
 
-        response = self.owner.send_command(self.location, command)
-
-        return response
+        return self.owner.send_command(self.location, command)
 
     def value(self, *args, **kwargs):
         """
@@ -412,9 +401,7 @@ class PointerTensor(ObjectPointer, AbstractTensor):
         """
         command = ("value", self, args, kwargs)
 
-        response = self.owner.send_command(self.location, command)
-
-        return response
+        return self.owner.send_command(self.location, command)
 
     def share_(self, *args, **kwargs):
         """
@@ -459,11 +446,7 @@ class PointerTensor(ObjectPointer, AbstractTensor):
             data = simplify(ptr)
         """
 
-        if ptr.tags:
-            tags = tuple(ptr.tags)  # Need to be converted (set data structure isn't serializable)
-        else:
-            tags = None
-
+        tags = tuple(ptr.tags) if ptr.tags else None
         return (
             # ptr.id,
             syft.serde.msgpack.serde._simplify(worker, ptr.id),
@@ -541,7 +524,6 @@ class PointerTensor(ObjectPointer, AbstractTensor):
                         tensor = tensor.wrap()
 
             return tensor
-        # Else we keep the same Pointer
         else:
 
             location = syft.hook.local_worker.get_worker(worker_id)
@@ -554,7 +536,7 @@ class PointerTensor(ObjectPointer, AbstractTensor):
                 # Decode binary description
                 description = description.decode("utf-8")
 
-            ptr = PointerTensor(
+            return PointerTensor(
                 location=location,
                 id_at_location=id_at_location,
                 owner=worker,
@@ -564,8 +546,6 @@ class PointerTensor(ObjectPointer, AbstractTensor):
                 tags=tags,
                 description=description,
             )
-
-            return ptr
 
         # a more general but slower/more verbose option
 
@@ -606,8 +586,6 @@ class PointerTensor(ObjectPointer, AbstractTensor):
         worker_id = syft.serde.protobuf.proto.get_protobuf_id(protobuf_tensor.location_id)
         point_to_attr = protobuf_tensor.point_to_attr
         shape = syft.hook.create_shape(protobuf_tensor.shape.dims)
-        garbage_collect_data = protobuf_tensor.garbage_collect_data
-
         # If the pointer received is pointing at the current worker, we load the tensor instead
         if worker_id == worker.id:
             tensor = worker.get_obj(obj_id_at_location)
@@ -631,11 +609,12 @@ class PointerTensor(ObjectPointer, AbstractTensor):
                         tensor = tensor.wrap()
 
             return tensor
-        # Else we keep the same Pointer
         else:
             location = syft.hook.local_worker.get_worker(worker_id)
 
-            ptr = PointerTensor(
+            garbage_collect_data = protobuf_tensor.garbage_collect_data
+
+            return PointerTensor(
                 location=location,
                 id_at_location=obj_id_at_location,
                 owner=worker,
@@ -644,10 +623,10 @@ class PointerTensor(ObjectPointer, AbstractTensor):
                 garbage_collect_data=garbage_collect_data,
             )
 
-            return ptr
-
 
 ### Register the tensor with hook_args.py ###
 register_type_rule({PointerTensor: one})
-register_forward_func({PointerTensor: lambda p: (_ for _ in ()).throw(RemoteObjectFoundError(p))})
+register_forward_func(
+    {PointerTensor: lambda p: iter(()).throw(RemoteObjectFoundError(p))}
+)
 register_backward_func({PointerTensor: lambda i: i})

@@ -77,7 +77,7 @@ def test_given_ids_side_effect(hook):
     assert len(given_ids) == 1
 
     provider.pop()
-    assert len(given_ids) == 0
+    assert not given_ids
 
 
 def test_set_next_ids(hook):

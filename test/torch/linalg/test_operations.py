@@ -140,6 +140,8 @@ def test_remote_random_number_generation(hook, workers):
     Test random number generation on remote worker machine
     """
 
+
+
     class Model(torch.nn.Module):
         def __init__(self):
             super(Model, self).__init__()
@@ -149,20 +151,17 @@ def test_remote_random_number_generation(hook, workers):
             return x + r
 
         def get_randint(self, n):
-            r = torch.rand(n)
-            return r
+            return torch.rand(n)
 
         def get_rand(self, n):
-            r = torch.rand(n)
-            return r
+            return torch.rand(n)
 
         def get_randn(self, n):
-            r = torch.randn(n)
-            return r
+            return torch.randn(n)
 
         def get_randperm(self, n):
-            r = torch.randperm(n)
-            return r
+            return torch.randperm(n)
+
 
     alice = workers["alice"]
     model = Model().to("cpu").send(alice)

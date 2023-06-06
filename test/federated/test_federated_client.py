@@ -80,8 +80,7 @@ def test_set_obj_other():
 def evaluate_model(fed_client, model_id, loss_fn, data, target):  # pragma: no cover
     new_model = fed_client.get_obj(model_id)
     pred = new_model.obj(data)
-    loss_after = loss_fn(target=target, pred=pred)
-    return loss_after
+    return loss_fn(target=target, pred=pred)
 
 
 def train_model(
@@ -96,7 +95,7 @@ def train_model(
                 loss = fed_client.fit(dataset_key=fit_dataset_key, device=device)
         if PRINT_IN_UNITTESTS and curr_round % 2 == 0:  # pragma: no cover
             print("-" * 50)
-            print("Iteration %s: alice's loss: %s" % (curr_round, loss))
+            print(f"Iteration {curr_round}: alice's loss: {loss}")
 
 
 @pytest.mark.parametrize(

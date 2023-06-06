@@ -36,11 +36,7 @@ class AutogradTensor(AbstractTensor):
         self.requires_grad = requires_grad
         self.preinitialize_grad = preinitialize_grad
 
-        if preinitialize_grad:
-            self.grad = data * 0
-        else:
-            self.grad = None
-
+        self.grad = data * 0 if preinitialize_grad else None
         self.grad_fn = kwargs.get("grad_fn")
 
     def backward(self, grad=None):
@@ -68,11 +64,7 @@ class AutogradTensor(AbstractTensor):
         self._grad = value
 
     def attr(self, attr_name):
-        if attr_name == "grad":
-            return self.grad
-
-        attr_val = self.child.attr(attr_name)
-        return attr_val
+        return self.grad if attr_name == "grad" else self.child.attr(attr_name)
 
     def __add__(self, other):
         return self.add(other)
@@ -129,7 +121,7 @@ class AutogradTensor(AbstractTensor):
     def __getattribute__(self, name):
         # Automatically attaching gradient functions if they are defined in the
         # gradients module.
-        grad_fn = getattr(gradients, name.capitalize() + "Backward", None)
+        grad_fn = getattr(gradients, f"{name.capitalize()}Backward", None)
 
         # print(f"getattribute {name}")
         if grad_fn is not None:
@@ -260,14 +252,10 @@ class AutogradTensor(AbstractTensor):
 
         if isinstance(tensor, torch.Tensor):
             # Remove the autograd node if a simple tensor is received
-            if not tensor.is_wrapper:
-                return tensor
-            # If it's a wrapper, then insert the autograd under the wrapper
-            else:
+            if tensor.is_wrapper:
                 self.child = tensor.child
                 tensor.child = self
-                return tensor
-
+            return tensor
         self.child = tensor
         return self
 
@@ -334,7 +322,7 @@ class AutogradTensor(AbstractTensor):
         if chain is not None:
             chain = syft.serde.msgpack.serde._detail(worker, chain)
 
-        tensor = AutogradTensor(
+        return AutogradTensor(
             owner=owner,
             id=syft.serde.msgpack.serde._detail(worker, tensor_id),
             requires_grad=requires_grad,  # ADDED!
@@ -345,5 +333,3 @@ class AutogradTensor(AbstractTensor):
             tags=syft.serde.msgpack.serde._detail(worker, tags),
             description=syft.serde.msgpack.serde._detail(worker, description),
         )
-
-        return tensor

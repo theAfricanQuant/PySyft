@@ -24,8 +24,7 @@ def get_args():
         help="if set, websocket server worker will be started in verbose mode",
     )
 
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 if __name__ == "__main__":

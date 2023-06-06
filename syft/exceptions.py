@@ -190,16 +190,14 @@ class ResponseSignatureError(Exception):
         attributes = sy.serde.msgpack.serde._detail(worker, attributes)
         # De-serialize the traceback
         tb = Traceback.from_string(traceback_str)
-        # Check that the error belongs to a valid set of Exceptions
-        if error_name in dir(sy.exceptions):
-            error_type = getattr(sy.exceptions, error_name)
-            error = error_type()
-            # Include special attributes if any
-            for attr_name, attr in attributes.items():
-                setattr(error, attr_name, attr)
-            reraise(error_type, error, tb.as_traceback())
-        else:
+        if error_name not in dir(sy.exceptions):
             raise ValueError(f"Invalid Exception returned:\n{traceback_str}")
+        error_type = getattr(sy.exceptions, error_name)
+        error = error_type()
+        # Include special attributes if any
+        for attr_name, attr in attributes.items():
+            setattr(error, attr_name, attr)
+        reraise(error_type, error, tb.as_traceback())
 
 
 class SendNotPermittedError(Exception):
@@ -233,16 +231,14 @@ class SendNotPermittedError(Exception):
         attributes = sy.serde.msgpack.serde._detail(worker, attributes)
         # De-serialize the traceback
         tb = Traceback.from_string(traceback_str)
-        # Check that the error belongs to a valid set of Exceptions
-        if error_name in dir(sy.exceptions):
-            error_type = getattr(sy.exceptions, error_name)
-            error = error_type()
-            # Include special attributes if any
-            for attr_name, attr in attributes.items():
-                setattr(error, attr_name, attr)
-            reraise(error_type, error, tb.as_traceback())
-        else:
+        if error_name not in dir(sy.exceptions):
             raise ValueError(f"Invalid Exception returned:\n{traceback_str}")
+        error_type = getattr(sy.exceptions, error_name)
+        error = error_type()
+        # Include special attributes if any
+        for attr_name, attr in attributes.items():
+            setattr(error, attr_name, attr)
+        reraise(error_type, error, tb.as_traceback())
 
 
 class GetNotPermittedError(Exception):
@@ -281,16 +277,14 @@ class GetNotPermittedError(Exception):
         attributes = sy.serde.msgpack.serde._detail(worker, attributes)
         # De-serialize the traceback
         tb = Traceback.from_string(traceback_str)
-        # Check that the error belongs to a valid set of Exceptions
-        if error_name in dir(sy.exceptions):
-            error_type = getattr(sy.exceptions, error_name)
-            error = error_type()
-            # Include special attributes if any
-            for attr_name, attr in attributes.items():
-                setattr(error, attr_name, attr)
-            reraise(error_type, error, tb.as_traceback())
-        else:
+        if error_name not in dir(sy.exceptions):
             raise ValueError(f"Invalid Exception returned:\n{traceback_str}")
+        error_type = getattr(sy.exceptions, error_name)
+        error = error_type()
+        # Include special attributes if any
+        for attr_name, attr in attributes.items():
+            setattr(error, attr_name, attr)
+        reraise(error_type, error, tb.as_traceback())
 
 
 class IdNotUniqueError(Exception):
@@ -317,7 +311,7 @@ class ObjectNotFoundError(Exception):
 
     def __init__(self, obj_id, worker):
         message = ""
-        message += 'Object "' + str(obj_id) + '" not found on worker!!! '
+        message += f'Object "{str(obj_id)}" not found on worker!!! '
         message += (
             "You just tried to interact with an object ID:"
             + str(obj_id)

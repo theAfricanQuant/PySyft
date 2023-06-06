@@ -123,27 +123,14 @@ class MultiPointerTensor(AbstractTensor):
 
     def get(self, sum_results: bool = False) -> FrameworkTensor:
 
-        results = list()
-        for v in self.child.values():
-            results.append(v.get())
-
-        if sum_results:
-            return sum(results)
-
-        return results
+        results = [v.get() for v in self.child.values()]
+        return sum(results) if sum_results else results
 
     def virtual_get(self, sum_results: bool = False):
         """Get the value of the tensor without calling get - Only for VirtualWorkers"""
 
-        results = list()
-        for v in self.child.values():
-            value = v.location._objects[v.id_at_location]
-            results.append(value)
-
-        if sum_results:
-            return sum(results)
-
-        return results
+        results = [v.location._objects[v.id_at_location] for v in self.child.values()]
+        return sum(results) if sum_results else results
 
     @staticmethod
     def dispatch(args, worker):
@@ -206,12 +193,9 @@ class MultiPointerTensor(AbstractTensor):
             # Send it to the appropriate class and get the response
             results[worker] = new_type.handle_func_command(new_command)
 
-        # Put back MultiPointerTensor on the tensors found in the response
-        response = hook_args.hook_response(
+        return hook_args.hook_response(
             cmd, results, wrap_type=cls, wrap_args=tensor.get_class_attributes()
         )
-
-        return response
 
     def set_garbage_collect_data(self, value):
         shares = self.child

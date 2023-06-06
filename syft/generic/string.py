@@ -160,17 +160,13 @@ class String(AbstractObject):
 
         """
 
-        ptr = self.owner.send(self, location)
-
-        return ptr
+        return self.owner.send(self, location)
 
     def get_class_attributes(self):
         """returns minimal necessary keyword arguments to create a 
            String object
         """
-        kwargs = dict(owner=self.owner)
-
-        return kwargs
+        return dict(owner=self.owner)
 
     def on(self, object: str, wrap=False):
         """Takes and object of type strings and assigns it to
@@ -254,15 +250,13 @@ class String(AbstractObject):
         if owner is None:
             owner = obj.owner
 
-        string_pointer = StringPointer(
+        return StringPointer(
             location=location,
             id_at_location=id_at_location,
             owner=owner,
             id=ptr_id,
             garbage_collect_data=garbage_collect_data,
         )
-
-        return string_pointer
 
     @staticmethod
     def simplify(worker: BaseWorker, string: "String"):

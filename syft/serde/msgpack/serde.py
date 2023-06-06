@@ -160,13 +160,9 @@ def _force_full_simplify(worker: AbstractWorker, obj: object) -> object:
     # for this type. If there is, return the full simplified object.
     current_type = type(obj)
     if current_type in forced_full_simplifiers:
-        result = (
-            forced_full_simplifiers[current_type][0],
-            forced_full_simplifiers[current_type][1](worker, obj),
-        )
-        return result
-    # If we already tried to find a full simplifier for this type but failed, we should
-    # simplify it instead.
+        return forced_full_simplifiers[current_type][
+            0
+        ], forced_full_simplifiers[current_type][1](worker, obj)
     elif current_type in no_full_simplifiers_found:
         return _simplify(worker, obj)
     else:
@@ -183,12 +179,9 @@ def _force_full_simplify(worker: AbstractWorker, obj: object) -> object:
                 # Store the inheritance_type in forced_full_simplifiers so next
                 # time we see this type serde will be faster.
                 forced_full_simplifiers[current_type] = forced_full_simplifiers[inheritance_type]
-                result = (
-                    forced_full_simplifiers[current_type][0],
-                    forced_full_simplifiers[current_type][1](worker, obj),
-                )
-                return result
-
+                return forced_full_simplifiers[current_type][
+                    0
+                ], forced_full_simplifiers[current_type][1](worker, obj)
         # If there is not a full_simplifier for this
         # object, then we simplify it.
         no_full_simplifiers_found.add(current_type)
@@ -264,14 +257,13 @@ def _serialize_msgpack_simple(
     # for details on how this works. The general purpose is to handle types
     # which the fast serializer cannot handle
     if not simplified:
-        if force_full_simplification:
-            simple_objects = _force_full_simplify(worker, obj)
-        else:
-            simple_objects = _simplify(worker, obj)
+        return (
+            _force_full_simplify(worker, obj)
+            if force_full_simplification
+            else _simplify(worker, obj)
+        )
     else:
-        simple_objects = obj
-
-    return simple_objects
+        return obj
 
 
 def _serialize_msgpack_binary(
@@ -339,13 +331,7 @@ def _deserialize_msgpack_binary(binary: bin, worker: AbstractWorker = None) -> o
     # 1) Decompress the binary if needed
     binary = compression._decompress(binary)
 
-    # 2) Deserialize
-    # This function converts the binary into the appropriate python
-    # object (or nested dict/collection of python objects)
-    simple_objects = msgpack_lib.loads(binary, use_list=False)
-
-    # sometimes we want to skip detailing (such as in Plan)
-    return simple_objects
+    return msgpack_lib.loads(binary, use_list=False)
 
 
 def _deserialize_msgpack_simple(simple_objects: object, worker: AbstractWorker = None) -> object:
@@ -399,17 +385,13 @@ def _simplify(worker: AbstractWorker, obj: object, **kwargs) -> object:
     # breakpoint()
     current_type = type(obj)
     if current_type in simplifiers:
-        result = (simplifiers[current_type][0], simplifiers[current_type][1](worker, obj, **kwargs))
-        return result
-    elif current_type in inherited_simplifiers_found:
-        result = (
-            inherited_simplifiers_found[current_type][0],
-            inherited_simplifiers_found[current_type][1](worker, obj, **kwargs),
+        return simplifiers[current_type][0], simplifiers[current_type][1](
+            worker, obj, **kwargs
         )
-        return result
-
-    # If we already tried to find a simplifier for this type but failed, we should
-    # just return the object as it is.
+    elif current_type in inherited_simplifiers_found:
+        return inherited_simplifiers_found[current_type][
+            0
+        ], inherited_simplifiers_found[current_type][1](worker, obj, **kwargs)
     elif current_type in no_simplifiers_found:
         return obj
 
@@ -427,12 +409,11 @@ def _simplify(worker: AbstractWorker, obj: object, **kwargs) -> object:
                 # Store the inheritance_type in simplifiers so next time we see this type
                 # serde will be faster.
                 inherited_simplifiers_found[current_type] = simplifiers[inheritance_type]
-                result = (
-                    inherited_simplifiers_found[current_type][0],
-                    inherited_simplifiers_found[current_type][1](worker, obj, **kwargs),
+                return inherited_simplifiers_found[current_type][
+                    0
+                ], inherited_simplifiers_found[current_type][1](
+                    worker, obj, **kwargs
                 )
-                return result
-
         # if there is not a simplifier for this
         # object, then the object is already a
         # simple python object and we can just

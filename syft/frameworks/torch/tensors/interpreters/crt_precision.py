@@ -51,7 +51,8 @@ class CRTPrecisionTensor(AbstractTensor):
         self.precision_fractional = precision_fractional
         if residues is not None:
             assert all(
-                [isinstance(r.child, FixedPrecisionTensor) for r in residues.values()]
+                isinstance(r.child, FixedPrecisionTensor)
+                for r in residues.values()
             ), "To build a CRTPrecisionTensor directly, the residue argument should be a dictionary \
                 where keys are moduli and values are the residues under the form of FixedPrecisionTensor"
             r = next(iter(residues.values()))  # Take one arbitrary residue
@@ -90,8 +91,7 @@ class CRTPrecisionTensor(AbstractTensor):
             self.field = prod_moduli
 
     def float_precision(self):
-        res = self.reconstruct() / self.base ** self.precision_fractional
-        return res
+        return self.reconstruct() / self.base ** self.precision_fractional
 
     @property
     def grad(self):

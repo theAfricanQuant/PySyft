@@ -40,7 +40,7 @@ class AccountCredential(AbstractCredential):
                 List : List of account objects.
         """
         user_files = glob.glob(os.path.join(path, file_name))
-        users = dict()
+        users = {}
         for f in user_files:
             with open(f) as json_file:
                 credentials = json.load(json_file)

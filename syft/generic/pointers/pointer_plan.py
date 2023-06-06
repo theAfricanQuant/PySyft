@@ -51,10 +51,7 @@ class PointerPlan(ObjectPointer):
     @property
     def location(self):
         n_locations = len(self._locations)
-        if n_locations != 1:
-            return self._locations
-        else:
-            return self._locations[0]
+        return self._locations if n_locations != 1 else self._locations[0]
 
     @location.setter
     def location(self, new_location: Union[AbstractWorker, List[AbstractWorker]]):
@@ -66,10 +63,7 @@ class PointerPlan(ObjectPointer):
     @property
     def id_at_location(self):
         n_ids = len(self._ids_at_location)
-        if n_ids != 1:
-            return self._ids_at_location
-        else:
-            return self._ids_at_location[0]
+        return self._ids_at_location if n_ids != 1 else self._ids_at_location[0]
 
     @id_at_location.setter
     def id_at_location(self, new_id_at_location):
@@ -83,15 +77,9 @@ class PointerPlan(ObjectPointer):
         Transform the call on the pointer in a request to evaluate the
         remote plan
         """
-        if len(self._locations) == 1:
-            location = self.location
-        else:
-            location = args[0].location
-
+        location = self.location if len(self._locations) == 1 else args[0].location
         result_ids = [sy.ID_PROVIDER.pop()]
-        response = self.request_run_plan(location, result_ids, *args)
-
-        return response
+        return self.request_run_plan(location, result_ids, *args)
 
     def parameters(self) -> List:
         """Return a list of pointers to the plan parameters"""
@@ -143,13 +131,14 @@ class PointerPlan(ObjectPointer):
                 self._locations,
             )
 
-        # look for the relevant id in the list of ids
-        id_at_location = None
-        for loc, id_at_loc in zip(self._locations, self._ids_at_location):
-            if loc == location:
-                id_at_location = id_at_loc
-                break
-
+        id_at_location = next(
+            (
+                id_at_loc
+                for loc, id_at_loc in zip(self._locations, self._ids_at_location)
+                if loc == location
+            ),
+            None,
+        )
         command = ("run", id_at_location, args, kwargs)
 
         response = self.owner.send_command(
@@ -164,8 +153,7 @@ class PointerPlan(ObjectPointer):
         This is an alias to fetch_plan, to behave like a pointer
         """
         copy = not deregister_ptr
-        plan = self.owner.fetch_plan(self.id_at_location, self.location, copy=copy)
-        return plan
+        return self.owner.fetch_plan(self.id_at_location, self.location, copy=copy)
 
     @staticmethod
     def simplify(worker: AbstractWorker, ptr: "PointerPlan") -> tuple:
@@ -186,24 +174,17 @@ class PointerPlan(ObjectPointer):
         id_at_location = sy.serde.msgpack.serde._detail(worker, id_at_location)
         worker_id = sy.serde.msgpack.serde._detail(worker, worker_id)
 
-        # If the pointer received is pointing at the current worker, we load the tensor instead
         if worker_id == worker.id:
-            plan = worker.get_obj(id_at_location)
+            return worker.get_obj(id_at_location)
+        location = sy.hook.local_worker.get_worker(worker_id)
 
-            return plan
-        # Else we keep the same Pointer
-        else:
-            location = sy.hook.local_worker.get_worker(worker_id)
-
-            ptr = PointerPlan(
-                location=location,
-                id_at_location=id_at_location,
-                owner=worker,
-                garbage_collect_data=garbage_collect_data,
-                id=obj_id,
-            )
-
-            return ptr
+        return PointerPlan(
+            location=location,
+            id_at_location=id_at_location,
+            owner=worker,
+            garbage_collect_data=garbage_collect_data,
+            id=obj_id,
+        )
 
     def wrap(self):
         return self
@@ -234,7 +215,7 @@ class PointerPlan(ObjectPointer):
         if self.tags is not None and len(self.tags):
             out += "\n\tTags: "
             for tag in self.tags:
-                out += str(tag) + " "
+                out += f"{str(tag)} "
 
         if self.description is not None:
             out += "\n\tDescription: " + str(self.description).split("\n")[0] + "..."

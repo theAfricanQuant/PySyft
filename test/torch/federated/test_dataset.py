@@ -109,8 +109,5 @@ def test_federated_dataset_search(workers):
     fed_dataset = sy.FederatedDataset(datasets)
     train_loader = sy.FederatedDataLoader(fed_dataset, batch_size=4, shuffle=False, drop_last=False)
 
-    counter = 0
-    for batch_idx, (data, target) in enumerate(train_loader):
-        counter += 1
-
+    counter = sum(1 for data, target in train_loader)
     assert counter == len(train_loader), f"{counter} == {len(fed_dataset)}"

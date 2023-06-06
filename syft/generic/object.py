@@ -42,13 +42,13 @@ class AbstractObject(ABC):
 
     def __str__(self) -> str:
         if hasattr(self, "child"):
-            return type(self).__name__ + ">" + self.child.__str__()
+            return f"{type(self).__name__}>{self.child.__str__()}"
         else:
             return type(self).__name__
 
     def __repr__(self) -> str:
         if hasattr(self, "child"):
-            return type(self).__name__ + ">" + self.child.__repr__()
+            return f"{type(self).__name__}>{self.child.__repr__()}"
         else:
             return type(self).__name__
 

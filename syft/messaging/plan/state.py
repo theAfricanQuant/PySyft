@@ -23,10 +23,9 @@ class State(object):
 
     def __str__(self):
         """Returns the string representation of the State."""
-        out = "<"
-        out += "State:"
+        out = "<" + "State:"
         for state_id in self.state_ids:
-            out += " {}".format(state_id)
+            out += f" {state_id}"
         out += ">"
         return out
 
@@ -52,8 +51,7 @@ class State(object):
         return {tensor.id: tensor.clone() for tensor in self.tensors()}
 
     def copy(self) -> "State":
-        state = State(owner=self.owner, state_ids=self.state_ids.copy())
-        return state
+        return State(owner=self.owner, state_ids=self.state_ids.copy())
 
     def read(self):
         """
@@ -147,5 +145,4 @@ class State(object):
         for state_id, state_element in zip(state_ids, state_elements):
             worker.register_obj(state_element, obj_id=state_id)
 
-        state = State(owner=worker, plan=None, state_ids=state_ids)
-        return state
+        return State(owner=worker, plan=None, state_ids=state_ids)

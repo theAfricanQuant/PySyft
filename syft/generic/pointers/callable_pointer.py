@@ -64,10 +64,9 @@ class CallablePointer(ObjectPointer):
         command = ("__call__", self.id_at_location, args, kwargs)
 
         return_ids = [sy.ID_PROVIDER.pop()]
-        response = self.owner.send_command(
+        return self.owner.send_command(
             message=command, recipient=self.location, return_ids=return_ids
         )
-        return response
 
 
 def create_callable_pointer(
